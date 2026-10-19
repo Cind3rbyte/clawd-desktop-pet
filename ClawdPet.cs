@@ -30,15 +30,19 @@ static class Program
     static void Main(string[] args)
     {
         // Developer helpers: render the pose sheet / the setup dialog into a PNG.
-        if (args.Length == 2 && args[0] == "--sheet")
+        // --sheet file [clawd|duck|cat] [poses|colors|cos]
+        if (args.Length >= 2 && args[0] == "--sheet")
         {
-            PetWindow.RenderSheet(args[1]);
+            PetWindow.RenderSheet(args[1], args.Length > 2 ? args[2] : "clawd", args.Length > 3 ? args[3] : "poses");
             return;
         }
+        // --setup-shot file de|en [live] [choose] [clawd|duck|cat]
         if (args.Length >= 3 && args[0] == "--setup-shot")
         {
             Cfg.Lang = args[2] == "de" ? "de" : "en";
-            SetupWindow.RenderShot(args[1], args.Length > 3);
+            int an = Array.IndexOf(Cfg.AnimalKeys, args[args.Length - 1]);
+            if (an >= 0) Cfg.Animal = an;
+            SetupWindow.RenderShot(args[1], Array.IndexOf(args, "live") >= 0, Array.IndexOf(args, "choose") >= 0);
             return;
         }
 
@@ -74,7 +78,7 @@ static class Program
             PetWindow.DemoAtStart = Array.IndexOf(args, "--demo") >= 0;
             Application app = new Application();
             app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            if (Cfg.FirstRun || Cfg.AlwaysSetup || Array.IndexOf(args, "--setup") >= 0) new SetupWindow().ShowDialog();
+            if (Cfg.FirstRun || Cfg.AlwaysSetup || Array.IndexOf(args, "--setup") >= 0) new SetupWindow(true).ShowDialog();
             PetWindow pet = new PetWindow();
             app.MainWindow = pet;
             app.ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -92,32 +96,100 @@ static class Cfg
     public static string Lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de" ? "de" : "en";
     public static int Size = 5;
     public static bool Talk;
-    public static string Color = Orange;
     public static bool FirstRun = true;
     public static bool ReadOnly;
     public static bool AlwaysSetup; // settings line "setup=always": show the welcome window on every start (handy for recordings)
 
     // Progress: feeding and petting earn XP; levels unlock tricks, colours and hats
-    public static int Xp;
-    public static double Food = 80;   // 0 = starving, 100 = full
-    public static long Stamp;         // when Food was last written (UTC ticks)
-    public static string Hat = "none";
-    public static bool Music = true;
+    // Pixel Roomies: three animals, each with its own XP, hunger and colour. One of them is on the screen.
+    public static int Animal;                          // 0 = Clawd, 1 = duck, 2 = cat
+    public static readonly string[] AnimalKeys = { "clawd", "duck", "cat" };
+    public static readonly string[] AccentVals = { "#F26522", "#D89500", "#9B6FE8" };
+    public static int[] XpA = new int[3];
+    public static double[] FoodA = { 80, 80, 80 };   // 0 = starving, 100 = full
+    public static int[] VarA = new int[3];             // chosen colour of each animal
+    public static long Stamp;                          // when the file was last written (UTC ticks)
+    public static int Xp { get { return XpA[Animal]; } set { XpA[Animal] = value; } }
+    public static double Food { get { return FoodA[Animal]; } set { FoodA[Animal] = value; } }
+    public static string Color
+    {
+        get { return Swatches(Animal)[VarA[Animal]]; }
+        set { int i = Array.IndexOf(Swatches(Animal), value); if (i >= 0) VarA[Animal] = i; }
+    }
+    public static string AccentHex(int an) { return AccentVals[an]; }
 
-    public static int Level { get { return 1 + (int)Math.Sqrt(Xp / 15.0); } }
+    // Cosmetics are shared by all animals: head, face, neck and effect can be worn at the same time
+    public static string Hat = "none", Face = "none", Neck = "none", Fx = "none";
+    public static bool Music = true;
+    public static int Streak;          // days in a row the app was started
+    public static string LastDay = "";
+    public static bool Trophy, TrophyNew;
+
+    public static int LevelOf(int xp) { return 1 + (int)Math.Sqrt(xp / 15.0); }
+    public static int Level { get { return LevelOf(Xp); } }
+    // Cosmetics unlock with the highest level of all animals
+    public static int TopLevel
+    {
+        get { int m = 1; for (int i = 0; i < XpA.Length; i++) m = Math.Max(m, LevelOf(XpA[i])); return m; }
+    }
+    public static int OthersTop()
+    {
+        int m = 1;
+        for (int i = 0; i < XpA.Length; i++) if (i != Animal) m = Math.Max(m, LevelOf(XpA[i]));
+        return m;
+    }
     public static int XpFor(int level) { return 15 * (level - 1) * (level - 1); }
+
+    public static string[] Swatches(int an)
+    {
+        if (an == 0) return ColVals;
+        Var[] vs = an == 1 ? Roomies.DuckVars : Roomies.CatVars;
+        string[] r = new string[vs.Length];
+        for (int i = 0; i < vs.Length; i++) r[i] = vs[i].Head ?? vs[i].Body;
+        return r;
+    }
+
+    // Start of a new day: counts the days in a row; seven in a row earn the golden trophy
+    public static void TouchDay()
+    {
+        DateTime now = DateTime.Now, last;
+        string today = now.ToString("yyyy-MM-dd");
+        if (LastDay == today) return;
+        if (DateTime.TryParseExact(LastDay, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out last) && last.Date.AddDays(1) == now.Date) Streak++;
+        else Streak = 1;
+        LastDay = today;
+        if (Streak >= 7 && !Trophy) { Trophy = true; TrophyNew = true; }
+    }
 
     public static readonly int[] SizeVals = { 3, 5, 7, 10 };
     public static readonly string[] ColVals = { Orange, "#F06FA8", "#4A90D9", "#3FA66B", "#9B6FE8", "#3DD6D0", "#E8B923" };
     public static readonly int[] ColLevel = { 1, 1, 1, 2, 3, 4, 5 };
-    public static readonly string[] HatVals = { "none", "cap", "party", "phones", "tophat", "crown", "flower" };
-    // 99 = not a level reward: the flower is a thank-you for opening the feedback form
-    public static readonly int[] HatLevel = { 1, 1, 1, 2, 4, 6, 99 };
-    public const int ByFeedback = 99;
-    public static bool Thanked
+    public static readonly string[] HatVals = { "none", "cap", "party", "phones", "tophat", "crown", "flower", "cowboy", "wizard", "chef", "pirate", "prop", "grad", "halo", "horns", "bow", "pumpkin", "santa" };
+    static readonly int[] HatBase = { 1, 1, 1, 2, 4, 6, 99, 2, 5, 3, 3, 4, 5, 7, 6, 2, 98, 97 };
+    public static readonly string[] FaceVals = { "none", "nerd", "sun", "monocle", "stache", "patch", "cheeks" };
+    public static readonly int[] FaceLevel = { 1, 2, 3, 5, 4, 3, 1 };
+    public static readonly string[] NeckVals = { "none", "bowtie", "scarf", "bandana", "bell" };
+    public static readonly int[] NeckLevel = { 1, 2, 3, 2, 1 };
+    public static readonly string[] FxVals = { "none", "sparkle", "hearts", "rain", "ghost", "trophy" };
+    // 99 = feedback form, 98 = only in October, 97 = only in December, 96 = seven days in a row (not level rewards)
+    public const int ByFeedback = 99, ByOctober = 98, ByDecember = 97, ByStreak = 96;
+    public static bool Thanked;
+    public static int[] HatLevel
     {
-        get { return HatLevel[6] == 1; }
-        set { HatLevel[6] = value ? 1 : ByFeedback; }
+        get
+        {
+            int[] n = (int[])HatBase.Clone();
+            if (Thanked) n[6] = 1;
+            if (DateTime.Now.Month == 10) n[16] = 1;
+            if (DateTime.Now.Month == 12) n[17] = 1;
+            return n;
+        }
+    }
+    public static int[] FxLevel { get { return new int[] { 1, 4, 3, 5, 7, Trophy ? 1 : ByStreak }; } }
+    public static string NeedText(int need)
+    {
+        return need == ByFeedback ? "Feedback" : need == ByOctober ? T("nur Oktober", "October only") : need == ByDecember ? T("nur Dezember", "December only")
+            : need == ByStreak ? T("7 Tage in Folge", "7 days in a row") : "Level " + need;
     }
 
     public static string T(string de, string en) { return Lang == "de" ? de : en; }
@@ -129,12 +201,41 @@ static class Cfg
 
     public static string[] ColLabels()
     {
+        if (Animal > 0)
+        {
+            Var[] vs = Animal == 1 ? Roomies.DuckVars : Roomies.CatVars;
+            string[] r = new string[vs.Length];
+            for (int i = 0; i < vs.Length; i++) r[i] = T(vs[i].De, vs[i].En);
+            return r;
+        }
         return new string[] { "Orange", "Pink", T("Blau", "Blue"), T("Grün", "Green"), T("Lila", "Purple"), T("Türkis", "Teal"), "Gold" };
+    }
+
+    public static string[] AnimalLabels()
+    {
+        return new string[] { "Clawd", T("Ente", "Duck"), T("Katze", "Cat") };
     }
 
     public static string[] HatLabels()
     {
-        return new string[] { T("Ohne", "None"), T("Mütze", "Beanie"), T("Partyhut", "Party hat"), T("Kopfhörer", "Headphones"), T("Zylinder", "Top hat"), T("Krone", "Crown"), T("Blume", "Flower") };
+        return new string[] { T("Ohne", "None"), T("Mütze", "Beanie"), T("Partyhut", "Party hat"), T("Kopfhörer", "Headphones"), T("Zylinder", "Top hat"), T("Krone", "Crown"), T("Blume", "Flower"),
+            T("Cowboyhut", "Cowboy hat"), T("Zauberhut", "Wizard hat"), T("Kochmütze", "Chef hat"), T("Piratenhut", "Pirate hat"), T("Propellermütze", "Propeller cap"), T("Doktorhut", "Graduation cap"),
+            T("Heiligenschein", "Halo"), T("Teufelshörner", "Devil horns"), T("Schleife", "Bow"), T("Kürbis-Hut", "Pumpkin hat"), T("Weihnachtsmütze", "Santa hat") };
+    }
+
+    public static string[] FaceLabels()
+    {
+        return new string[] { T("Ohne", "None"), T("Nerdbrille", "Nerd glasses"), T("Sonnenbrille", "Sunglasses"), T("Monokel", "Monocle"), T("Schnurrbart", "Moustache"), T("Augenklappe", "Eye patch"), T("Rosige Wangen", "Rosy cheeks") };
+    }
+
+    public static string[] NeckLabels()
+    {
+        return new string[] { T("Ohne", "None"), T("Fliege", "Bow tie"), T("Schal", "Scarf"), T("Halstuch", "Bandana"), T("Glöckchen", "Bell collar") };
+    }
+
+    public static string[] FxLabels()
+    {
+        return new string[] { T("Ohne", "None"), T("Funkeln", "Sparkles"), T("Kleine Herzen", "Little hearts"), T("Regenwolke", "Rain cloud"), T("Mini-Geist", "Mini ghost"), T("Goldener Pokal", "Golden trophy") };
     }
 
     static string FilePath
@@ -150,26 +251,46 @@ static class Cfg
             {
                 string[] kv = line.Split('=');
                 if (kv.Length != 2) continue;
-                if (kv[0] == "lang") { Lang = kv[1] == "de" ? "de" : "en"; FirstRun = false; }
-                if (kv[0] == "size") Size = Math.Max(2, Math.Min(12, int.Parse(kv[1])));
-                if (kv[0] == "talk") Talk = kv[1] == "1";
-                if (kv[0] == "setup") AlwaysSetup = kv[1] == "always";
-                if (kv[0] == "color" && kv[1].StartsWith("#")) Color = kv[1];
-                if (kv[0] == "xp") Xp = Math.Max(0, int.Parse(kv[1]));
-                if (kv[0] == "food") Food = Math.Max(0, Math.Min(100, double.Parse(kv[1], CultureInfo.InvariantCulture)));
-                if (kv[0] == "stamp") Stamp = long.Parse(kv[1]);
-                if (kv[0] == "hat" && Array.IndexOf(HatVals, kv[1]) >= 0) Hat = kv[1];
-                if (kv[0] == "music") Music = kv[1] == "1";
-                if (kv[0] == "thanks") Thanked = kv[1] == "1";
+                // per-animal keys: xp / food / var for Clawd, xp_duck, xp_cat ... for the others
+                string key = kv[0];
+                int an = 0;
+                if (key.EndsWith("_duck")) { an = 1; key = key.Substring(0, key.Length - 5); }
+                else if (key.EndsWith("_cat")) { an = 2; key = key.Substring(0, key.Length - 4); }
+                if (key == "lang") { Lang = kv[1] == "de" ? "de" : "en"; FirstRun = false; }
+                if (key == "size") Size = Math.Max(2, Math.Min(12, int.Parse(kv[1])));
+                if (key == "talk") Talk = kv[1] == "1";
+                if (key == "setup") AlwaysSetup = kv[1] == "always";
+                if (key == "color" && kv[1].StartsWith("#")) VarA[0] = Math.Max(0, Array.IndexOf(ColVals, kv[1]));
+                if (key == "var") VarA[an] = Math.Max(0, Math.Min(6, int.Parse(kv[1])));
+                if (key == "xp") XpA[an] = Math.Max(0, int.Parse(kv[1]));
+                if (key == "food") FoodA[an] = Math.Max(0, Math.Min(100, double.Parse(kv[1], CultureInfo.InvariantCulture)));
+                if (key == "stamp") Stamp = long.Parse(kv[1]);
+                if (key == "animal" && Array.IndexOf(AnimalKeys, kv[1]) >= 0) Animal = Array.IndexOf(AnimalKeys, kv[1]);
+                if (key == "hat" && Array.IndexOf(HatVals, kv[1]) >= 0) Hat = kv[1];
+                if (key == "face" && Array.IndexOf(FaceVals, kv[1]) >= 0) Face = kv[1];
+                if (key == "neck" && Array.IndexOf(NeckVals, kv[1]) >= 0) Neck = kv[1];
+                if (key == "fx" && Array.IndexOf(FxVals, kv[1]) >= 0) Fx = kv[1];
+                if (key == "music") Music = kv[1] == "1";
+                if (key == "thanks") Thanked = kv[1] == "1";
+                if (key == "trophy") Trophy = kv[1] == "1";
+                if (key == "streak") Streak = Math.Max(0, int.Parse(kv[1]));
+                if (key == "lastday") LastDay = kv[1];
             }
-            // He also gets hungry while the PC is off - but slowly, and never all the way
+            // They also get hungry while the PC is off - but slowly, and never all the way
             if (Stamp > 0)
             {
                 double hours = (DateTime.UtcNow - new DateTime(Stamp, DateTimeKind.Utc)).TotalHours;
-                if (hours > 0) Food = Math.Max(Math.Min(Food, 20), Food - hours * 8);
+                if (hours > 0)
+                    for (int i = 0; i < FoodA.Length; i++) FoodA[i] = Math.Max(Math.Min(FoodA[i], 20), FoodA[i] - hours * 8);
             }
         }
         catch { }
+        // Seasonal and earned pieces are only worn while they are available
+        if (Hat == "pumpkin" && DateTime.Now.Month != 10) Hat = "none";
+        if (Hat == "santa" && DateTime.Now.Month != 12) Hat = "none";
+        if (Hat == "flower" && !Thanked) Hat = "none";
+        if (Fx == "trophy" && !Trophy) Fx = "none";
+        TouchDay();
     }
 
     public static void Save()
@@ -178,8 +299,18 @@ static class Cfg
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
-            File.WriteAllLines(FilePath, new string[] { "lang=" + Lang, "size=" + Size, "talk=" + (Talk ? "1" : "0"), "color=" + Color, "setup=" + (AlwaysSetup ? "always" : "first"),
-                "xp=" + Xp, "food=" + Food.ToString("0.#", CultureInfo.InvariantCulture), "stamp=" + DateTime.UtcNow.Ticks, "hat=" + Hat, "music=" + (Music ? "1" : "0"), "thanks=" + (Thanked ? "1" : "0") });
+            List<string> o = new List<string> { "lang=" + Lang, "size=" + Size, "talk=" + (Talk ? "1" : "0"), "setup=" + (AlwaysSetup ? "always" : "first"),
+                "animal=" + AnimalKeys[Animal], "stamp=" + DateTime.UtcNow.Ticks, "hat=" + Hat, "face=" + Face, "neck=" + Neck, "fx=" + Fx, "music=" + (Music ? "1" : "0"),
+                "thanks=" + (Thanked ? "1" : "0"), "trophy=" + (Trophy ? "1" : "0"), "streak=" + Streak, "lastday=" + LastDay };
+            for (int i = 0; i < 3; i++)
+            {
+                string sfx = i == 0 ? "" : "_" + AnimalKeys[i];
+                o.Add("xp" + sfx + "=" + XpA[i]);
+                o.Add("food" + sfx + "=" + FoodA[i].ToString("0.#", CultureInfo.InvariantCulture));
+                o.Add("var" + sfx + "=" + VarA[i]);
+            }
+            o.Add("color=" + ColVals[VarA[0]]); // older versions read this one
+            File.WriteAllLines(FilePath, o.ToArray());
         }
         catch { }
     }
@@ -204,34 +335,89 @@ static class Cfg
     }
 }
 
-// First-run / settings dialog: language, size, colour and a few switches.
+// A small animated animal for the welcome window (pixel art drawn with the same code as the pet itself).
+class PetPreview : FrameworkElement
+{
+    public int Animal, Variant;
+    public bool Dress;       // wear the cosmetics that are set
+    public bool Hover;       // happy eyes
+    public bool Walk;        // walk on the spot
+    readonly double scale;
+    readonly Roomies rm = new Roomies();
+    readonly DispatcherTimer timer = new DispatcherTimer();
+    double anim;
+
+    public PetPreview(int animal, double scale, double w, double h)
+    {
+        Animal = animal;
+        this.scale = scale;
+        Width = w;
+        Height = h;
+        IsHitTestVisible = false;
+        HorizontalAlignment = HorizontalAlignment.Center;
+        RenderOptions.SetEdgeMode(this, EdgeMode.Aliased);
+        RenderTransformOrigin = new Point(0.5, 1);
+        RenderTransform = new ScaleTransform(1, 1);
+        timer.Interval = TimeSpan.FromMilliseconds(110);
+        timer.Tick += delegate { anim += 0.11; InvalidateVisual(); };
+        Loaded += delegate { timer.Start(); };
+        Unloaded += delegate { timer.Stop(); };
+    }
+
+    protected override void OnRender(DrawingContext dc)
+    {
+        double dpi = 1;
+        PresentationSource src = PresentationSource.FromVisual(this);
+        if (src != null && src.CompositionTarget != null) dpi = src.CompositionTarget.TransformToDevice.M11;
+        rm.Dc = dc;
+        rm.Dpi = dpi;
+        rm.S = Math.Max(1, Math.Round(scale * dpi)) / dpi;
+        rm.Ox = Math.Round(Width / 2 * dpi) / dpi;
+        rm.Oy = Height - 3 * rm.S;
+        Pose p = new Pose();
+        int fr = (int)(anim * 5) % 2;
+        p.Eye = Hover ? Roomies.EyeHappy : (anim % 3.3 > 3.15 ? Roomies.EyeClosed : Roomies.EyeOpen);
+        p.Moving = Walk;
+        p.Frame = fr;
+        p.Bob = Walk ? (fr == 0 ? 0 : -0.6) : Math.Sin(anim * 2.2) * 0.25;
+        if (Hover) p.AR = -3 + (int)(anim * 6) % 2;
+        int v = Animal == 0 ? Variant : Math.Max(0, Math.Min(6, Variant));
+        rm.Animal(Animal, v, p, Dress ? Cfg.Hat : "none", Dress ? Cfg.Face : "none", Dress ? Cfg.Neck : "none");
+    }
+}
+
+// First-run / settings dialog: pick an animal (first run), then language, size, colour and a few switches.
 class SetupWindow : Window
 {
-    internal static readonly Brush Accent = PetWindow.B(Cfg.Orange);
+    internal static Brush Accent { get { return PetWindow.B(Cfg.AccentHex(Cfg.Animal)); } }
     static bool noAnim, forceLight;
 
     readonly bool dark;
-    readonly Brush fg, muted;
-    readonly Canvas logo = new Canvas();
-    readonly TextBlock head = new TextBlock(), sub = new TextBlock(), hint = new TextBlock(), okText = new TextBlock();
+    readonly Brush fg, muted, track, switchOff;
+    PetPreview logo;
+    readonly TextBlock head = new TextBlock(), sub = new TextBlock(), hint = new TextBlock(), okText = new TextBlock(), back = new TextBlock();
     readonly TextBlock lLang = new TextBlock(), lSize = new TextBlock(), lColor = new TextBlock();
-    readonly Segments lang, size;
-    readonly Toggle talk, auto;
-    readonly StackPanel swatches = new StackPanel();
+    Segments lang, size;
+    Toggle talk, auto;
+    StackPanel swatches;
     readonly StackPanel root = new StackPanel();
-    string color = Cfg.Color;
+    readonly bool welcome;
+    bool settingsBuilt;
+    int variant;
 
     static string T(string de, string en) { return Cfg.T(de, en); }
 
-    public SetupWindow()
+    public SetupWindow(bool welcome)
     {
+        this.welcome = welcome;
+        variant = Cfg.VarA[Cfg.Animal];
         dark = Glass.Dark && !forceLight;
         fg = dark ? Brushes.White : PetWindow.B("#1A1915");
         muted = PetWindow.B(dark ? "#B4FFFFFF" : "#6E6D68");
-        Brush track = PetWindow.B(dark ? "#24FFFFFF" : "#16000000");
-        Brush switchOff = PetWindow.B(dark ? "#40FFFFFF" : "#38000000");
+        track = PetWindow.B(dark ? "#24FFFFFF" : "#16000000");
+        switchOff = PetWindow.B(dark ? "#40FFFFFF" : "#38000000");
 
-        Title = "Clawd";
+        Title = "Pixel Roomies";
         Width = 400;
         SizeToContent = SizeToContent.Height;
         ResizeMode = ResizeMode.NoResize;
@@ -250,31 +436,116 @@ class SetupWindow : Window
         SourceInitialized += delegate { MakeGlass(); };
 
         root.Margin = new Thickness(30, 22, 30, 26);
+        Content = root;
 
-        logo.Width = 18 * 6;
-        logo.Height = 10 * 6;
-        logo.HorizontalAlignment = HorizontalAlignment.Center;
-        logo.RenderTransformOrigin = new Point(0.5, 1);
-        logo.RenderTransform = new ScaleTransform(1, 1);
-        root.Children.Add(logo);
-
-        head.FontSize = 24;
+        head.FontSize = 22;
         head.FontWeight = FontWeights.Bold;
         head.HorizontalAlignment = HorizontalAlignment.Center;
-        head.Margin = new Thickness(0, 14, 0, 0);
-        root.Children.Add(head);
-
+        head.TextAlignment = TextAlignment.Center;
+        head.TextWrapping = TextWrapping.Wrap;
         sub.Foreground = muted;
         sub.TextWrapping = TextWrapping.Wrap;
         sub.TextAlignment = TextAlignment.Center;
         sub.Margin = new Thickness(0, 4, 0, 0);
-        root.Children.Add(sub);
-
+        hint.FontSize = 12;
+        hint.Foreground = muted;
+        hint.TextWrapping = TextWrapping.Wrap;
+        hint.TextAlignment = TextAlignment.Center;
+        hint.Margin = new Thickness(0, 10, 0, 0);
         foreach (TextBlock l in new TextBlock[] { lLang, lSize, lColor })
         {
             l.FontWeight = FontWeights.SemiBold;
             l.Margin = new Thickness(0, 18, 0, 7);
         }
+
+        if (welcome) BuildChoose(); else BuildSettings();
+
+        KeyDown += delegate(object s, KeyEventArgs e) { if (e.Key == Key.Escape || (e.Key == Key.Enter && settingsBuilt)) Close(); };
+        Closed += delegate
+        {
+            if (settingsBuilt)
+            {
+                Cfg.Size = Cfg.SizeVals[size.Selected];
+                Cfg.VarA[Cfg.Animal] = variant;
+                Cfg.Talk = talk.IsOn;
+                try { Cfg.AutoStart = auto.IsOn; } catch { }
+            }
+            Cfg.Save();
+        };
+    }
+
+    // Step 1 of the welcome window: three cards with a moving animal, one click picks it.
+    void BuildChoose()
+    {
+        settingsBuilt = false;
+        root.Children.Clear();
+        head.Margin = new Thickness(0, 2, 0, 0);
+        head.Text = T("Willkommen bei Pixel Roomies!", "Welcome to Pixel Roomies!");
+        sub.Text = T("Wer soll bei dir einziehen? Später kannst du jederzeit wechseln.", "Who should move in with you? You can switch any time.");
+        root.Children.Add(head);
+        root.Children.Add(sub);
+
+        UniformGrid cards = new UniformGrid();
+        cards.Rows = 1;
+        cards.Margin = new Thickness(-5, 20, -5, 0);
+        string[] names = Cfg.AnimalLabels();
+        for (int i = 0; i < 3; i++)
+        {
+            int idx = i;
+            Brush accent = PetWindow.B(Cfg.AccentHex(i));
+            Border card = new Border();
+            card.CornerRadius = new CornerRadius(14);
+            card.Background = track;
+            card.BorderThickness = new Thickness(2);
+            card.BorderBrush = Brushes.Transparent;
+            card.Margin = new Thickness(5, 0, 5, 0);
+            card.Padding = new Thickness(0, 12, 0, 12);
+            card.Cursor = Cursors.Hand;
+            card.RenderTransformOrigin = new Point(0.5, 0.5);
+            card.RenderTransform = new ScaleTransform(1, 1);
+            StackPanel sp = new StackPanel();
+            PetPreview pv = new PetPreview(i, 3, 90, 66);
+            pv.Variant = 0;
+            pv.Walk = true;
+            sp.Children.Add(pv);
+            TextBlock nm = new TextBlock();
+            nm.Text = names[i];
+            nm.FontWeight = FontWeights.SemiBold;
+            nm.HorizontalAlignment = HorizontalAlignment.Center;
+            nm.Margin = new Thickness(0, 8, 0, 0);
+            sp.Children.Add(nm);
+            card.Child = sp;
+            card.MouseEnter += delegate { Zoom(card, 1.06, 0.2); card.BorderBrush = accent; pv.Hover = true; };
+            card.MouseLeave += delegate { Zoom(card, 1, 0.25); card.BorderBrush = Brushes.Transparent; pv.Hover = false; };
+            card.MouseLeftButtonDown += delegate { Zoom(card, 0.95, 0.08); };
+            card.MouseLeftButtonUp += delegate { Cfg.Animal = idx; variant = Cfg.VarA[idx]; BuildSettings(); };
+            cards.Children.Add(card);
+        }
+        root.Children.Add(cards);
+
+        root.Children.Add(lLang);
+        lLang.Text = T("Sprache", "Language");
+        lang = new Segments(2, Cfg.Lang == "de" ? 0 : 1, track, fg);
+        lang.SetLabels(new string[] { "Deutsch", "English" });
+        lang.Picked = delegate(int i) { Cfg.Lang = i == 0 ? "de" : "en"; BuildChoose(); };
+        root.Children.Add(lang);
+        if (!noAnim) Entrance();
+    }
+
+    // Step 2 (or the whole settings dialog): language, size, colour and the switches.
+    void BuildSettings()
+    {
+        settingsBuilt = true;
+        root.Children.Clear();
+        int an = Cfg.Animal;
+        logo = new PetPreview(an, 4, 150, 84);
+        logo.Variant = variant;
+        logo.Dress = true;
+        root.Children.Add(logo);
+
+        head.Margin = new Thickness(0, 14, 0, 0);
+        root.Children.Add(head);
+        root.Children.Add(sub);
 
         root.Children.Add(lLang);
         lang = new Segments(2, Cfg.Lang == "de" ? 0 : 1, track, fg);
@@ -287,11 +558,14 @@ class SetupWindow : Window
         root.Children.Add(size);
 
         root.Children.Add(lColor);
+        swatches = new StackPanel();
         swatches.Orientation = Orientation.Horizontal;
-        for (int ci = 0; ci < Cfg.ColVals.Length; ci++)
+        string[] vals = Cfg.Swatches(an);
+        for (int ci = 0; ci < vals.Length; ci++)
         {
-            string val = Cfg.ColVals[ci];
-            bool locked = Cfg.ColLevel[ci] > Cfg.Level && val != Cfg.Color;
+            int cidx = ci;
+            string val = vals[ci];
+            bool locked = Cfg.ColLevel[ci] > Cfg.Level && ci != variant;
             Border b = new Border();
             b.Width = b.Height = 34;
             b.CornerRadius = new CornerRadius(10);
@@ -299,7 +573,7 @@ class SetupWindow : Window
             b.Background = PetWindow.B(val);
             b.BorderThickness = new Thickness(3);
             b.Cursor = Cursors.Hand;
-            b.Tag = val;
+            b.Tag = cidx;
             b.RenderTransformOrigin = new Point(0.5, 0.5);
             b.RenderTransform = new ScaleTransform(1, 1);
             if (locked)
@@ -313,7 +587,7 @@ class SetupWindow : Window
             {
                 b.MouseEnter += delegate { Zoom(b, 1.14, 0.2); };
                 b.MouseLeave += delegate { Zoom(b, 1, 0.25); };
-                b.MouseLeftButtonDown += delegate { color = val; Mark(); Pop(b); Pop(logo); };
+                b.MouseLeftButtonDown += delegate { variant = cidx; Mark(); Pop(b); Pop(logo); };
             }
             swatches.Children.Add(b);
         }
@@ -347,27 +621,27 @@ class SetupWindow : Window
         ok.MouseLeftButtonUp += delegate { Close(); };
         root.Children.Add(ok);
 
-        hint.FontSize = 12;
-        hint.Foreground = muted;
-        hint.TextWrapping = TextWrapping.Wrap;
-        hint.TextAlignment = TextAlignment.Center;
-        hint.Margin = new Thickness(0, 10, 0, 0);
         root.Children.Add(hint);
+        if (welcome)
+        {
+            back.FontSize = 12;
+            back.Foreground = muted;
+            back.TextDecorations = TextDecorations.Underline;
+            back.HorizontalAlignment = HorizontalAlignment.Center;
+            back.Margin = new Thickness(0, 6, 0, 0);
+            back.Cursor = Cursors.Hand;
+            back.MouseLeftButtonUp += delegate
+            {
+                // remember what was set so far, then go back to the animal cards
+                Cfg.VarA[Cfg.Animal] = variant;
+                BuildChoose();
+            };
+            root.Children.Add(back);
+        }
 
-        Content = root;
         Retext();
         Mark();
         if (!noAnim) Entrance();
-
-        KeyDown += delegate(object s, KeyEventArgs e) { if (e.Key == Key.Enter || e.Key == Key.Escape) Close(); };
-        Closed += delegate
-        {
-            Cfg.Size = Cfg.SizeVals[size.Selected];
-            Cfg.Color = color;
-            Cfg.Talk = talk.IsOn;
-            Cfg.Save();
-            try { Cfg.AutoStart = auto.IsOn; } catch { }
-        };
     }
 
     // Real, live frosted glass behind the whole window (Windows 11 22H2 and newer).
@@ -379,7 +653,8 @@ class SetupWindow : Window
 
     void Retext()
     {
-        head.Text = T("Hallo, ich bin Clawd!", "Hi, I'm Clawd!");
+        int an = Cfg.Animal;
+        head.Text = an == 0 ? T("Hallo, ich bin Clawd!", "Hi, I'm Clawd!") : an == 1 ? T("Hallo, ich bin die Ente!", "Hi, I'm the duck!") : T("Hallo, ich bin die Katze!", "Hi, I'm the cat!");
         sub.Text = T("Dein kleiner Mitbewohner für den Desktop. Wie hättest du mich gern?", "Your little desktop companion. How would you like me?");
         lLang.Text = T("Sprache", "Language");
         lSize.Text = T("Größe", "Size");
@@ -388,7 +663,8 @@ class SetupWindow : Window
         talk.Label.Text = T("Sprechblasen anzeigen", "Show speech bubbles");
         auto.Label.Text = T("Mit Windows starten", "Start with Windows");
         okText.Text = T("Los geht's!", "Let's go!");
-        hint.Text = T("Alles lässt sich später per Rechtsklick auf Clawd ändern.", "You can change everything later by right-clicking Clawd.");
+        hint.Text = T("Alles lässt sich später per Rechtsklick auf mich ändern.", "You can change everything later by right-clicking me.");
+        back.Text = T("Anderes Tier wählen", "Pick a different animal");
     }
 
     // Everything slides up and fades in, one row after the other.
@@ -397,7 +673,7 @@ class SetupWindow : Window
         for (int i = 0; i < root.Children.Count; i++)
         {
             UIElement el = root.Children[i];
-            if (el == logo) continue;
+            if (el is PetPreview) continue;
             TimeSpan delay = TimeSpan.FromSeconds(0.12 + i * 0.045);
             el.Opacity = 0;
             DoubleAnimation fade = Glass.Anim(0, 1, 0.3, Glass.Smooth);
@@ -410,7 +686,10 @@ class SetupWindow : Window
             move.BeginTime = delay;
             tr.BeginAnimation(TranslateTransform.YProperty, move);
         }
-        Loaded += delegate { Pop(logo); };
+        if (logo != null && settingsBuilt)
+        {
+            if (IsLoaded) Pop(logo); else Loaded += delegate { Pop(logo); };
+        }
     }
 
     static void Zoom(FrameworkElement el, double to, double secs)
@@ -431,44 +710,27 @@ class SetupWindow : Window
         sc.BeginAnimation(ScaleTransform.ScaleYProperty, Glass.Anim(0.8, rest, 0.4, Glass.Spring));
     }
 
-    // Highlight the chosen swatch and redraw the little Clawd in that colour.
+    // Highlight the chosen swatch and redraw the little animal in that colour.
     void Mark()
     {
         foreach (object o in swatches.Children)
         {
             Border b = (Border)o;
-            b.BorderBrush = (string)b.Tag == color ? fg : Brushes.Transparent;
+            b.BorderBrush = (int)b.Tag == variant ? fg : Brushes.Transparent;
         }
-        logo.Children.Clear();
-        Brush c = PetWindow.B(color);
-        Cell(c, 2, 0, 14, 8);
-        Cell(c, 0, 3, 18, 2);
-        foreach (int lx in new int[] { 3, 5, 12, 14 }) Cell(c, lx, 8, 1, 2);
-        Brush ink = PetWindow.B("#1A1915");
-        Cell(ink, 5, 2, 1, 2);
-        Cell(ink, 12, 2, 1, 2);
-    }
-
-    void Cell(Brush b, int cx, int cy, int w, int h)
-    {
-        System.Windows.Shapes.Rectangle r = new System.Windows.Shapes.Rectangle();
-        r.Fill = b;
-        r.Width = w * 6;
-        r.Height = h * 6;
-        Canvas.SetLeft(r, cx * 6);
-        Canvas.SetTop(r, cy * 6);
-        logo.Children.Add(r);
+        logo.Variant = variant;
+        logo.InvalidateVisual();
     }
 
     // Developer helper. Default: clean light-mode picture for the README.
     // live: a real screenshot of the window on screen, glass included.
-    public static void RenderShot(string path, bool live)
+    public static void RenderShot(string path, bool live, bool choose)
     {
         Cfg.ReadOnly = true;
         Cfg.Xp = 9999; // show every colour unlocked
         noAnim = true;
         forceLight = !live;
-        SetupWindow w = new SetupWindow();
+        SetupWindow w = new SetupWindow(choose);
         w.ContentRendered += delegate
         {
             if (live)
@@ -523,7 +785,7 @@ class PasswordWindow : Window
     {
         bool dark = Glass.Dark;
         Brush fg = dark ? Brushes.White : PetWindow.B("#1A1915");
-        Title = "Clawd";
+        Title = "Pixel Roomies";
         Width = 320;
         SizeToContent = SizeToContent.Height;
         ResizeMode = ResizeMode.NoResize;
@@ -1218,6 +1480,599 @@ static class Sound
     }
 }
 
+// ---------- Pixel Roomies: drawing code for all animals and cosmetics (rectangles in cell units) ----------
+
+class Pose
+{
+    public int Eye, Lx, Ly, Frame, DanglePhase;
+    public double AL, AR, Bob, Tall;
+    public bool Sit, Cool, Dangle, Moving;
+    public string Extra;
+}
+
+struct Anchor
+{
+    public double Top, Hw, ExL, ExR, Ey, My, ChY, ChL, ChR, Cw, Ny, Nw, Bt, Bb, ArmY, ArmR, ArmL, FxTop, GhostY;
+    public bool Loaf;
+}
+
+class Var
+{
+    public string De, En, Body, Dark, Belly, Beak, BeakD, Feet, Head, Muzzle, Tail, Points, EyeC, EarIn;
+    public bool Ring, Stripes, Tux;
+    public Var(string de, string en) { De = de; En = en; }
+}
+
+class Roomies
+{
+    public const int EyeOpen = 0, EyeClosed = 1, EyeHappy = 2, EyeWide = 3, EyeDizzy = 4;
+    public DrawingContext Dc;
+    public double Ox, Oy, S = 5, Dpi = 1;
+
+    static readonly Dictionary<string, Brush> cache = new Dictionary<string, Brush>();
+    static readonly Dictionary<string, string> names = new Dictionary<string, string> {
+        {"ink","#1A1915"}, {"white","#FFFFFF"}, {"cream","#FAF9F5"}, {"red","#E5484D"}, {"redD","#A8262B"}, {"yellow","#F5C542"},
+        {"blue","#4A90D9"}, {"grey","#C9C8C2"}, {"greyD","#8A8983"}, {"brown","#8B5A2B"}, {"brownD","#5C3A1A"}, {"gold","#E8C76A"},
+        {"green","#3FA66B"}, {"greenD","#2C7A4D"}, {"purple","#9B6FE8"}, {"pink","#F06FA8"}, {"pinkL","#FF9DB8"},
+        {"hatBlue","#3B6FD4"}, {"crownGold","#F2B824"}, {"crownD","#C99410"}, {"teal","#3DD6D0"}, {"orange","#F28C28"},
+        {"orangeD","#C96A12"}, {"indigo","#3B2F8F"}, {"indigoD","#2A2068"}, {"cloud","#9AA3AE"}, {"cloudD","#7C8591"},
+        {"rain","#3F7FD0"}, {"ghost","#F2F6FF"}, {"ghostD","#C9D5F0"}, {"stache","#3A2412"}, {"shine","#6E6D68"} };
+
+    public static Brush K(string c)
+    {
+        Brush b;
+        if (cache.TryGetValue(c, out b)) return b;
+        string hex;
+        if (!names.TryGetValue(c, out hex)) hex = c;
+        b = PetWindow.B(hex);
+        cache[c] = b;
+        return b;
+    }
+
+    double Sn(double v) { return Math.Round(v * Dpi) / Dpi; }
+
+    public void R(double x, double y, double w, double h, string c)
+    {
+        double x0 = Sn(Ox + x * S), y0 = Sn(Oy + y * S), x1 = Sn(Ox + (x + w) * S), y1 = Sn(Oy + (y + h) * S);
+        if (x1 <= x0 || y1 <= y0) return;
+        Dc.DrawRectangle(K(c), null, new Rect(x0, y0, x1 - x0, y1 - y0));
+    }
+
+    public void Rc(double y, double w, double h, string c) { R(-w / 2.0, y, w, h, c); }
+
+    public void M(string[] rows, double x, double y, string keys, params string[] cols)
+    {
+        for (int r = 0; r < rows.Length; r++)
+            for (int q = 0; q < rows[r].Length; q++)
+            {
+                int k = keys.IndexOf(rows[r][q]);
+                if (k >= 0) R(x + q, y + r, 1, 1, cols[k]);
+            }
+    }
+
+    static readonly string[] Heart5 = { ".X.X.", "XXXXX", "XXXXX", ".XXX.", "..X.." };
+    static readonly string[] Plus5 = { "..X..", "..X..", "XXXXX", "..X..", "..X.." };
+    static readonly string[] Plus3 = { ".X.", "XXX", ".X." };
+    static readonly string[] GhostBmp = { ".XXX.", "XXXXX", "X#X#X", "XXXXX", "XXXXX", "X.X.X" };
+
+    // ---------- eyes ----------
+    public void Eye(int mode, double ex, double ey, string c)
+    {
+        switch (mode)
+        {
+            case EyeOpen: R(ex, ey, 1, 2, c); break;
+            case EyeClosed: R(ex - 0.5, ey + 1, 2, 0.7, "ink"); break;
+            case EyeHappy: R(ex - 1, ey + 1, 1, 1, "ink"); R(ex, ey, 1, 1, "ink"); R(ex + 1, ey + 1, 1, 1, "ink"); break;
+            case EyeWide: R(ex - 0.5, ey - 0.5, 2, 2.5, "ink"); R(ex - 0.5, ey - 0.5, 1, 1, "white"); break;
+            case EyeDizzy:
+                R(ex - 1, ey - 0.5, 1, 1, "ink"); R(ex + 1, ey - 0.5, 1, 1, "ink"); R(ex, ey + 0.5, 1, 1, "ink");
+                R(ex - 1, ey + 1.5, 1, 1, "ink"); R(ex + 1, ey + 1.5, 1, 1, "ink");
+                break;
+        }
+    }
+
+    // ---------- animals ----------
+    public Anchor ClawdAnchor(Pose p)
+    {
+        Anchor a = new Anchor();
+        double so = p.Sit ? 2 : 0;
+        double bt = -10 - p.Tall + p.Bob + so;
+        double ey = -8 - p.Tall * 0.5 + p.Bob + so + p.Ly;
+        a.Top = bt; a.Hw = 7; a.ExL = -4 + p.Lx; a.ExR = 3 + p.Lx; a.Ey = ey; a.My = ey + 2.7; a.ChY = ey + 2.2; a.ChL = -6.3; a.ChR = 4.3;
+        a.Cw = 2; a.Ny = ey + 3.8; a.Nw = 14; a.Bt = bt; a.Bb = p.Sit ? 0 : -2 + p.Bob; a.ArmY = -7 + p.Bob + so; a.ArmR = p.AR; a.ArmL = p.AL;
+        a.FxTop = bt; a.GhostY = -18;
+        return a;
+    }
+
+    public Anchor Clawd(Pose p, string body)
+    {
+        Anchor a = ClawdAnchor(p);
+        double bt = a.Bt, bb = a.Bb, armY = a.ArmY;
+        if (!p.Sit)
+        {
+            double[] legX = { -6, -4, 3, 5 };
+            for (int i = 0; i < 4; i++)
+            {
+                double ln = -bb;
+                if (p.Dangle) ln = (i + p.DanglePhase) % 2 == 0 ? 2 : 1.2;
+                else if (p.Moving && i % 2 == p.Frame) ln = 1;
+                R(legX[i], bb, 1, ln, body);
+            }
+        }
+        R(-7, bt, 14, bb - bt, body);
+        R(-9, armY + p.AL, 2, 2, body);
+        R(7, armY + p.AR, 2, 2, body);
+        Eye(p.Eye, a.ExL, a.Ey, "ink");
+        Eye(p.Eye, a.ExR, a.Ey, "ink");
+        if (p.Cool)
+        {
+            double gy = -8.5 + p.Bob;
+            R(-7, gy, 14, 1, "ink"); R(-6, gy, 5, 3, "ink"); R(1, gy, 5, 3, "ink");
+            R(-5, gy + 1, 1, 1, "shine"); R(2, gy + 1, 1, 1, "shine");
+        }
+        return a;
+    }
+
+    public Anchor Duck(Pose p, Var v)
+    {
+        string body = v.Body, dk = v.Dark, belly = v.Belly, beak = v.Beak, feet = v.Feet ?? "#F28C28", head = v.Head ?? body;
+        double bob = p.Bob, so = p.Sit ? 2 : 0, tall = p.Tall;
+        string ex = p.Extra;
+        double bt = -8 - tall + bob + so;
+        double bb = p.Sit ? 0 : -2 + bob;
+        double armY = -6 + bob + so;
+        if (ex == "puddle")
+        {
+            R(-9, -1, 18, 2, "rain"); R(-6, 1, 12, 1, "rain");
+            R(-11, -3, 1, 1, "rain"); R(10, -4, 1, 1, "rain"); R(-9, -6, 1, 1, "rain"); R(9, -7, 1, 1, "rain");
+        }
+        if (!p.Sit)
+        {
+            double[] lx = { -4.5, 1.5 };
+            for (int i = 0; i < 2; i++)
+            {
+                double x = lx[i];
+                double raised = (p.Moving && i == p.Frame) ? 1 : 0;
+                double ln = -bb;
+                if (p.Dangle)
+                {
+                    ln = (i + p.DanglePhase) % 2 == 0 ? 2 : 1.2;
+                    R(x + 1, bb, 1, ln, feet); R(x, bb + ln - 0.5, 3, 1, feet);
+                }
+                else
+                {
+                    R(x + 1, bb, 1, Math.Max(0, ln - 1 - raised), feet);
+                    R(x, -1 - raised, 3, 1, feet);
+                }
+            }
+        }
+        R(-8, bt + 1, 2, 2, body); R(-8, bt, 1, 1, body);
+        R(-4, bt, 8, 1, body);
+        R(-6, bt + 1, 12, bb - bt - 2, body);
+        R(-5, bb - 1, 10, 1, body);
+        R(-3, bt + 3.2, 6, 2.2, belly);
+        R(-8.5, armY + p.AL, 2.5, 3, dk);
+        R(6, armY + p.AR, 2.5, 3, dk);
+        double ht = bt - 6;
+        R(-3, ht, 6, 1, head); R(-4, ht + 1, 8, 5, head);
+        if (v.Ring) R(-4, ht + 6, 8, 0.8, "white");
+        double ey = ht + 2 + p.Ly;
+        Eye(p.Eye, -3 + p.Lx, ey, "ink");
+        Eye(p.Eye, 2 + p.Lx, ey, "ink");
+        if (ex == "quak")
+        {
+            R(-2, ht + 3.6, 4, 1, beak); R(-2, ht + 4.6, 4, 1, "redD"); R(-2.5, ht + 5.6, 5, 1.2, beak);
+        }
+        else
+        {
+            R(-2, ht + 3.6, 4, 1, beak); R(-3, ht + 4.6, 6, 1.4, v.BeakD ?? beak);
+        }
+        if (p.Cool)
+        {
+            double gy = ey - 0.5;
+            R(-4.5, gy, 9, 1, "ink"); R(-4, gy, 3.5, 2.5, "ink"); R(0.5, gy, 3.5, 2.5, "ink");
+            R(-3, gy + 1, 1, 1, "greyD"); R(1.5, gy + 1, 1, 1, "greyD");
+        }
+        Anchor a = new Anchor();
+        a.Top = ht; a.Hw = 4; a.ExL = -3 + p.Lx; a.ExR = 2 + p.Lx; a.Ey = ey; a.My = ht + 3.0; a.ChY = ht + 3.6; a.ChL = -4.2; a.ChR = 3.0;
+        a.Cw = 1.2; a.Ny = bt - 0.8; a.Nw = 9; a.Bt = bt; a.Bb = bb; a.ArmY = armY; a.ArmR = p.AR; a.ArmL = p.AL; a.FxTop = ht; a.GhostY = -18;
+        return a;
+    }
+
+    public Anchor Cat(Pose p, Var v)
+    {
+        string body = v.Body, dk = v.Dark, mz = v.Muzzle, tailc = v.Tail ?? v.Body, pts = v.Points, pw = v.Points ?? v.Body;
+        double bob = p.Bob, so = p.Sit ? 2 : 0, tall = p.Tall;
+        string ex = p.Extra;
+        if (ex == "hunt") so = 3;
+        string ecol = v.EyeC ?? "ink";
+        Anchor a = new Anchor();
+        if (ex == "loaf")
+        {
+            R(8, -5, 2, 1.5, pts ?? tailc);
+            R(-7, -6, 14, 6, body); R(-8, -5, 16, 5, body); R(-6, -7, 12, 1, body);
+            R(-7, -1.5, 14, 1.5, v.Stripes ? dk : body);
+            if (v.Stripes) foreach (int q in new int[] { -5, -1, 3 }) R(q, -7, 1, 1.5, dk);
+            double lh = -9;
+            R(-5, lh, 10, 5, body);
+            R(-5, lh - 2, 2, 2, pw); R(-5, lh - 1, 3, 1, pw); R(-4.5, lh - 1, 1, 1, "pinkL");
+            R(3, lh - 2, 2, 2, pw); R(2, lh - 1, 3, 1, pw); R(3.5, lh - 1, 1, 1, "pinkL");
+            R(-3.5, lh + 2.4, 2, 0.6, "ink"); R(1.5, lh + 2.4, 2, 0.6, "ink");
+            R(-0.5, lh + 3.2, 1, 1, "pinkL");
+            R(-5, -2, 3, 2, pw); R(2, -2, 3, 2, pw);
+            a.Top = lh; a.Hw = 5; a.ExL = -3.5; a.ExR = 2.5; a.Ey = lh + 1.6; a.My = lh + 3.6; a.ChY = lh + 3; a.ChL = -5; a.ChR = 3.2; a.Cw = 2;
+            a.Ny = lh + 5; a.Nw = 10; a.Bt = -6; a.Bb = 0; a.ArmY = -4; a.FxTop = lh - 2; a.GhostY = -18; a.Loaf = true;
+            return a;
+        }
+        double bt = -9 - tall + bob + so;
+        double bb = p.Sit ? 0 : -2 + bob;
+        double armY = -6.5 + bob + so;
+        double ht = bt - 6;
+        double wag = ex == "purr" ? 1 : 0;
+        double ty = bt + 2;
+        R(5, bb - 1.5, 3, 1.5, tailc);
+        R(7, ty, 1.5, bb - ty - 0.5, tailc);
+        R(7 + wag, ty - 1.5, 1.5, 1.5, pts ?? dk);
+        if (!p.Sit)
+        {
+            double[] lx = { -4, 2 };
+            for (int i = 0; i < 2; i++)
+            {
+                double ln = -bb;
+                if (p.Dangle) ln = (i + p.DanglePhase) % 2 == 0 ? 2 : 1.2;
+                else if (p.Moving && i == p.Frame) ln = 1;
+                R(lx[i], bb, 2, ln, pw);
+            }
+        }
+        R(-5, bt, 10, bb - bt, body);
+        if (v.Stripes) foreach (double q in new double[] { -3, -0.5, 2 }) R(q, bt, 1, 2, dk);
+        if (v.Tux) R(-2, bt + 1, 4, bb - bt - 1, "white");
+        R(-7, armY + p.AL, 2.2, 2.5, pw);
+        R(4.8, armY + p.AR, 2.2, 2.5, pw);
+        R(-6, ht, 12, 6, body);
+        for (int sg = -1; sg <= 1; sg += 2)
+        {
+            double ex0 = sg < 0 ? -6 : 4;
+            R(ex0, ht - 2, 2, 1, pw);
+            R(sg < 0 ? -6 : 3, ht - 1, 3, 1, pw);
+            R(sg < 0 ? -4.8 : 3.8, ht - 1, 1, 1, v.EarIn ?? "pinkL");
+        }
+        if (v.Stripes) { R(-0.5, ht, 1, 1.6, dk); R(-2.5, ht, 0.8, 1.2, dk); R(1.7, ht, 0.8, 1.2, dk); }
+        if (pts != null) R(-3.5, ht + 2, 7, 4, pts);
+        R(-2.5, ht + 3.5, 5, 2.5, mz);
+        double ey = ht + 2 + p.Ly;
+        Eye(p.Eye, -4 + p.Lx, ey, ecol);
+        Eye(p.Eye, 3 + p.Lx, ey, ecol);
+        R(-0.5, ht + 3.4, 1, 1, pts == null ? "pinkL" : "ink");
+        R(-1, ht + 4.4, 0.8, 0.6, "ink"); R(0.2, ht + 4.4, 0.8, 0.6, "ink");
+        for (int sg = -1; sg <= 1; sg += 2)
+        {
+            double wx = sg < 0 ? -9 : 6;
+            R(wx, ht + 3.4, 3, 0.4, "white"); R(wx, ht + 4.4, 3, 0.4, "white");
+        }
+        if (p.Cool)
+        {
+            double gy = ey - 0.5;
+            R(-6, gy, 12, 1, "ink"); R(-5.5, gy, 4.5, 2.6, "ink"); R(1, gy, 4.5, 2.6, "ink");
+            R(-4.5, gy + 1, 1, 1, "greyD"); R(2, gy + 1, 1, 1, "greyD");
+        }
+        a.Top = ht; a.Hw = 6; a.ExL = -4 + p.Lx; a.ExR = 3 + p.Lx; a.Ey = ey; a.My = ht + 4.6; a.ChY = ht + 3.8; a.ChL = -5.6; a.ChR = 3.6;
+        a.Cw = 2; a.Ny = bt - 0.5; a.Nw = 10; a.Bt = bt; a.Bb = bb; a.ArmY = armY; a.ArmR = p.AR; a.ArmL = p.AL; a.FxTop = ht - 2; a.GhostY = -19;
+        return a;
+    }
+
+    // Extras that belong to one animal only (drawn on top of the body, before the cosmetics)
+    public void Extras(string animal, string extra, Anchor a, Var v, double anim)
+    {
+        if (extra == null) return;
+        switch (extra)
+        {
+            case "scratch":
+                R(10, -22, 2, 24, "greyD"); R(10, -22, 0.6, 24, "grey");
+                foreach (double dy in new double[] { -12, -10.8, -9.6 }) R(9.2, dy, 0.5, 2, "brownD");
+                break;
+            case "groom":
+                R(5.2, a.Ey + 2.6, 1.4, 1.2, "pinkL");
+                break;
+            case "purr":
+                for (int i = 0; i < 2; i++)
+                {
+                    R(-12, a.Ey + 1.5 + i * 2, 3, 0.6, "white");
+                    R(9, a.Ey + 1.5 + i * 2, 3, 0.6, "white");
+                }
+                break;
+            case "hunt":
+                R(9, -3, 4, 2, "greyD"); R(12.5, -3.4, 1.2, 1.2, "greyD"); R(8, -2.4, 1, 0.5, "pinkL");
+                R(11.5, -2.4, 0.6, 0.6, "ink");
+                M(Plus3, 14, -6, "X", "white");
+                break;
+            case "run":
+                for (int i = 0; i < 3; i++) R(-15 + i, -8 + i * 2.4, 4 - i, 0.5, "white");
+                break;
+        }
+    }
+
+    public void Print(double x, double y)
+    {
+        R(x - 1, y, 2.6, 0.6, "orangeD"); R(x - 0.4, y - 0.6, 0.5, 0.6, "orangeD");
+        R(x + 0.5, y - 0.6, 0.5, 0.6, "orangeD"); R(x + 1.4, y - 0.6, 0.5, 0.6, "orangeD");
+    }
+
+    // ---------- cosmetics ----------
+    double Sw(double n, Anchor a) { return Math.Max(1, Math.Round(n * 2 * a.Hw / 14.0, MidpointRounding.AwayFromZero)); }
+
+    public void Hat(string k, Anchor a)
+    {
+        double t = a.Top, W = 2 * a.Hw;
+        switch (k)
+        {
+            case "cap":
+                Rc(t - 5, 2, 1, "white"); Rc(t - 4, Sw(6, a), 1, "hatBlue"); Rc(t - 3, Sw(10, a), 1, "hatBlue");
+                Rc(t - 2, Sw(12, a), 1, "hatBlue"); Rc(t - 1, Sw(13, a) + 0.5, 1.2, "white");
+                break;
+            case "party":
+                {
+                    int[] pw = { 1, 1, 2, 3, 4, 5, 6 };
+                    string[] pc = { "yellow", "pink", "blue", "pink", "blue", "pink", "blue" };
+                    double mx = W >= 12 ? 6 : 5;
+                    for (int i = 0; i < 7; i++) Rc(t - 7 + i, Math.Min(pw[i], mx), 1, pc[i]);
+                }
+                break;
+            case "phones":
+                Rc(t - 1.6, W - 0.5, 1.1, "ink");
+                R(-a.Hw - 1, t - 1, 1.5, 1.6, "ink"); R(a.Hw - 0.5, t - 1, 1.5, 1.6, "ink");
+                R(-a.Hw - 1.6, t + 0.5, 1.6, 2.5, "ink"); R(a.Hw, t + 0.5, 1.6, 2.5, "ink");
+                R(-a.Hw - 1.6, t + 1, 0.6, 1.5, "teal"); R(a.Hw + 1, t + 1, 0.6, 1.5, "teal");
+                break;
+            case "tophat":
+                Rc(t - 6, Sw(7, a), 5, "ink"); Rc(t - 2.2, Sw(7, a), 1.2, "red"); Rc(t - 1, Sw(11, a) + 1, 1, "ink");
+                break;
+            case "crown":
+                {
+                    double w = Sw(9, a);
+                    R(-w / 2, t - 4, 1.5, 2, "crownGold"); R(-0.75, t - 4.6, 1.5, 2.6, "crownGold"); R(w / 2 - 1.5, t - 4, 1.5, 2, "crownGold");
+                    Rc(t - 2, w, 2, "crownGold"); R(-0.5, t - 1.5, 1, 1, "red");
+                    if (w >= 6) { R(-w / 2 + 1.2, t - 1.5, 1, 1, "blue"); R(w / 2 - 2.2, t - 1.5, 1, 1, "blue"); }
+                }
+                break;
+            case "flower":
+                R(-0.5, t - 3, 1, 3, "green"); R(0.5, t - 2, 1.5, 1, "green");
+                Rc(t - 5, 3, 1, "pink"); R(-0.5, t - 6, 1, 3, "pink"); R(-0.5, t - 5, 1, 1, "yellow");
+                break;
+            case "cowboy":
+                {
+                    double bw = W + 4;
+                    Rc(t - 1, bw, 1.2, "brown"); R(-bw / 2, t - 2, 1.6, 1, "brown"); R(bw / 2 - 1.6, t - 2, 1.6, 1, "brown");
+                    Rc(t - 4, Sw(7, a), 3, "brown"); Rc(t - 5, Sw(4, a), 1, "brown"); Rc(t - 2, Sw(7, a), 0.8, "brownD");
+                    R(-0.5, t - 4, 1, 1, "brownD");
+                }
+                break;
+            case "wizard":
+                {
+                    int[] ww = { 1, 2, 3, 3, 4, 5, 6 };
+                    for (int i = 0; i < 7; i++) Rc(t - 10 + i, Math.Min(ww[i], Math.Max(2, Sw(6, a))), 1, "indigo");
+                    R(1, t - 11, 1.5, 1, "indigo");
+                    Rc(t - 2.3, Math.Max(Sw(8, a), 5), 1.2, "indigoD"); Rc(t - 1.3, Sw(12, a) + 1, 1.3, "indigo");
+                    R(-0.5, t - 7, 1, 1, "yellow"); R(1.2, t - 5, 1, 1, "yellow"); R(-1.8, t - 4.6, 0.8, 0.8, "yellow");
+                }
+                break;
+            case "chef":
+                Rc(t - 8, Sw(6, a), 1, "white"); Rc(t - 7, Sw(9, a), 2, "white"); Rc(t - 5, Sw(11, a), 1, "white");
+                Rc(t - 4, Sw(8, a), 3, "white"); Rc(t - 1.5, Sw(9, a), 0.8, "grey");
+                R(-1.4, t - 3.8, 0.5, 2, "grey"); R(0.9, t - 3.8, 0.5, 2, "grey");
+                break;
+            case "pirate":
+                Rc(t - 4, Sw(5, a), 1, "ink"); Rc(t - 3, Sw(9, a), 1, "ink"); Rc(t - 2, Sw(13, a), 2, "ink");
+                R(-Sw(13, a) / 2 - 1, t - 3, 1.5, 1.2, "ink"); R(Sw(13, a) / 2 - 0.5, t - 3, 1.5, 1.2, "ink");
+                Rc(t - 3.4, 2, 1.4, "white"); Rc(t - 1.6, 4, 0.5, "white");
+                break;
+            case "prop":
+                Rc(t - 3, Sw(5, a), 1, "red"); Rc(t - 2, Sw(9, a), 1, "yellow"); Rc(t - 1, Sw(12, a), 1, "hatBlue");
+                R(-0.25, t - 5, 0.5, 2, "greyD"); Rc(t - 5.7, Sw(10, a), 0.7, "grey");
+                R(-Sw(10, a) / 2, t - 5.7, 1.2, 0.7, "red"); R(Sw(10, a) / 2 - 1.2, t - 5.7, 1.2, 0.7, "green");
+                break;
+            case "grad":
+                {
+                    Rc(t - 3, Sw(13, a), 1, "ink"); Rc(t - 4, Sw(7, a), 1, "ink"); Rc(t - 2, Sw(8, a), 2, "ink");
+                    R(-0.5, t - 3.6, 1, 0.6, "gold");
+                    double cx = Sw(13, a) / 2 - 1.5;
+                    R(cx, t - 3, 0.6, 3, "gold"); R(cx - 0.2, t, 1, 1, "gold");
+                }
+                break;
+            case "halo":
+                {
+                    double wb = Math.Max(3, Sw(6, a));
+                    Rc(t - 6, wb, 1, "crownGold"); Rc(t - 4, wb, 1, "crownGold");
+                    R(-wb / 2 - 1, t - 5, 1, 1, "crownGold"); R(wb / 2, t - 5, 1, 1, "crownGold");
+                }
+                break;
+            case "horns":
+                for (int sg = -1; sg <= 1; sg += 2)
+                {
+                    double x = sg < 0 ? (-a.Hw + 0.5) : (a.Hw - 1.5);
+                    R(x, t - 1, 1.5, 1, "red");
+                    R(x - 0.3 * sg, t - 2, 1.5, 1, "red");
+                    R(x - 0.8 * sg, t - 3, 1, 1, "redD");
+                }
+                break;
+            case "bow":
+                {
+                    double x = Math.Max(2.5, a.Hw * 0.45);
+                    R(x - 3, t - 3, 2, 3, "pink"); R(x + 1, t - 3, 2, 3, "pink"); R(x - 1, t - 2.2, 2, 2, "pinkL");
+                    R(x - 0.5, t - 1.7, 1, 1, "pink");
+                }
+                break;
+            case "pumpkin":
+                Rc(t - 5, Sw(8, a), 1, "orange"); Rc(t - 4, Sw(11, a), 3, "orange"); Rc(t - 1, Sw(9, a), 1, "orangeD");
+                R(-0.5, t - 6.5, 1.5, 2, "green");
+                R(-Sw(11, a) / 2 + 1.6, t - 4, 0.8, 3, "orangeD"); R(Sw(11, a) / 2 - 2.4, t - 4, 0.8, 3, "orangeD");
+                R(-1.8, t - 3.3, 1, 1, "ink"); R(0.8, t - 3.3, 1, 1, "ink"); Rc(t - 1.8, 2.6, 0.7, "ink");
+                break;
+            case "santa":
+                Rc(t - 1.2, Sw(13, a), 1.6, "white");
+                Rc(t - 2.8, Sw(11, a), 1.6, "red"); Rc(t - 3.8, Sw(9, a), 1, "red"); Rc(t - 4.8, Sw(7, a), 1, "red");
+                R(0.5, t - 5.8, 3, 1, "red"); R(2.5, t - 5, 2, 1, "red"); R(3.8, t - 4.6, 2, 2, "white");
+                break;
+        }
+    }
+
+    public void Face(string k, Anchor a)
+    {
+        double cl = a.ExL + 0.5, cr = a.ExR + 0.5, ey = a.Ey, gap = cr - cl;
+        double lw = Math.Min(4, Math.Floor(gap - 1));
+        switch (k)
+        {
+            case "nerd":
+                foreach (double cx in new double[] { cl, cr })
+                {
+                    double x = cx - lw / 2.0;
+                    R(x, ey - 1, lw, 0.8, "ink"); R(x, ey + 2.2, lw, 0.8, "ink");
+                    R(x, ey - 1, 0.8, 4, "ink"); R(x + lw - 0.8, ey - 1, 0.8, 4, "ink");
+                    R(x + 1.2, ey - 0.2, 0.7, 0.7, "white");
+                }
+                R(cl + lw / 2.0, ey + 0.3, gap - lw, 0.8, "ink");
+                R(cl - lw / 2.0 - 1.2, ey, 1.2, 0.7, "ink"); R(cr + lw / 2.0, ey, 1.2, 0.7, "ink");
+                break;
+            case "sun":
+                {
+                    double wl = lw + 1;
+                    foreach (double cx in new double[] { cl, cr }) R(cx - wl / 2.0, ey - 0.3, wl, 2.8, "ink");
+                    R(cl - wl / 2.0, ey - 0.8, gap + wl, 1, "ink");
+                    R(cl - wl / 2.0 + 0.8, ey + 0.6, 1, 1, "white"); R(cr - wl / 2.0 + 0.8, ey + 0.6, 1, 1, "white");
+                }
+                break;
+            case "monocle":
+                {
+                    double x = cr - 2;
+                    R(x, ey - 1, 4, 0.8, "crownGold"); R(x, ey + 2.2, 4, 0.8, "crownGold");
+                    R(x, ey - 1, 0.8, 4, "crownGold"); R(x + 3.2, ey - 1, 0.8, 4, "crownGold");
+                    R(x + 1.2, ey - 0.2, 0.7, 0.7, "white");
+                    R(cr + 1.6, ey + 3, 0.5, 4.5, "crownGold"); R(cr + 1.6, ey + 7, 1, 1, "crownGold");
+                }
+                break;
+            case "stache":
+                {
+                    double y = a.My;
+                    Rc(y, 2.4, 1, "stache"); R(-4, y + 0.6, 3, 1, "stache"); R(1, y + 0.6, 3, 1, "stache");
+                    R(-4.8, y, 1, 1, "stache"); R(3.8, y, 1, 1, "stache");
+                }
+                break;
+            case "patch":
+                R(cl - 2, ey - 1, 4, 4, "ink");
+                R(-a.Hw, ey - 1.2, a.Hw + cl - 2, 0.7, "ink");
+                R(cl + 1.4, ey - 2.5, 0.7, 2, "ink"); R(cl + 2, ey - 3.3, 4, 0.7, "ink");
+                break;
+            case "cheeks":
+                R(a.ChL, a.ChY, a.Cw, 1, "pinkL"); R(a.ChR, a.ChY, a.Cw, 1, "pinkL");
+                break;
+        }
+    }
+
+    public void Neck(string k, Anchor a)
+    {
+        double y = a.Ny, nw = a.Nw;
+        switch (k)
+        {
+            case "bowtie":
+                R(-3.2, y, 2.6, 2, "red"); R(0.6, y, 2.6, 2, "red"); R(-0.7, y + 0.3, 1.4, 1.4, "redD");
+                break;
+            case "scarf":
+                {
+                    Rc(y, nw, 1.6, "red");
+                    for (int i = 0; i < (int)(nw / 3); i++) R(-nw / 2 + 1 + i * 3, y, 0.7, 1.6, "white");
+                    double x = nw / 2 - 3;
+                    R(x, y + 1.6, 2, 3.5, "red"); R(x, y + 3, 2, 0.7, "white");
+                }
+                break;
+            case "bandana":
+                for (int i = 0; i < 4; i++) Rc(y + i, Math.Max(1, nw - 2 * i), 1, "blue");
+                R(-1.5, y + 0.2, 0.7, 0.7, "white"); R(1.4, y + 0.5, 0.7, 0.7, "white"); R(-0.2, y + 1.5, 0.7, 0.7, "white");
+                break;
+            case "bell":
+                Rc(y, nw - 1, 1, "red");
+                R(-1, y + 1, 2, 2, "crownGold"); R(-0.3, y + 2.2, 0.6, 0.5, "ink"); R(-1, y + 1, 0.7, 0.7, "white");
+                break;
+        }
+    }
+
+    public void Fx(string k, Anchor a)
+    {
+        double t = a.FxTop, h = a.Hw;
+        switch (k)
+        {
+            case "sparkle":
+                M(Plus5, -h - 5, t + 1, "X", "yellow"); R(-h - 3.5, t + 2.5, 2, 2, "white");
+                M(Plus3, h + 3, t - 3, "X", "white"); M(Plus3, h + 2, -5, "X", "yellow");
+                M(Plus3, -h - 3, -4, "X", "white");
+                break;
+            case "hearts":
+                M(Heart5, -3, t - 8, "X", "red"); M(Heart5, h + 1, t - 3, "X", "pink");
+                M(Heart5, -h - 5, t - 2, "X", "pinkL");
+                break;
+            case "rain":
+                {
+                    double y = t - 11;
+                    R(-6, y + 2, 12, 2, "cloud"); R(-4, y, 4, 2, "cloud"); R(0, y + 0.8, 4, 1.2, "cloud"); R(-5, y + 3.2, 10, 1, "cloudD");
+                    double[] xs = { -4, -1, 2, 5 }, ds = { 0, 2, 1, 3 };
+                    for (int i = 0; i < 4; i++) R(xs[i], y + 5 + ds[i], 0.6, 1.6, "rain");
+                    double[] xs2 = { -5.5, -2.5, 1, 4 }, ds2 = { 4, 6, 5, 7 };
+                    for (int i = 0; i < 4; i++) R(xs2[i], y + 5 + ds2[i], 0.6, 1.6, "rain");
+                }
+                break;
+            case "ghost":
+                {
+                    double gx = -h - 8, gy = a.GhostY;
+                    M(GhostBmp, gx, gy, "X#", "ghost", "ink");
+                    R(gx, gy + 5, 1, 1, "ghostD"); R(gx + 4, gy + 4, 1, 1, "ghostD");
+                    R(gx + 1, gy + 3.2, 3, 0.8, "ghostD");
+                }
+                break;
+            case "trophy":
+                {
+                    double x = h + 1.6, y = -13;
+                    R(x, y, 4, 3, "crownGold"); R(x - 1, y + 0.5, 1, 1.6, "crownD"); R(x + 4, y + 0.5, 1, 1.6, "crownD");
+                    R(x + 0.6, y + 0.6, 0.8, 1.2, "white");
+                    R(x + 1.2, y + 3, 1.6, 2, "crownD"); R(x + 0.3, y + 5, 3.4, 1, "crownGold"); R(x, y + 6, 4, 1, "crownD");
+                }
+                break;
+        }
+    }
+
+    // ---------- the animals and their colours ----------
+    public static readonly Var[] DuckVars = {
+        new Var("Gelb", "Yellow") { Body = "#F5C542", Dark = "#D9A520", Belly = "#FBE08A", Beak = "#F28C28", BeakD = "#D9731A" },
+        new Var("Weiß", "White") { Body = "#F4F2EA", Dark = "#CFCBC0", Belly = "#FFFFFF", Beak = "#F28C28", BeakD = "#D9731A" },
+        new Var("Stockente", "Mallard") { Body = "#8B6B4A", Dark = "#6B4F34", Belly = "#C9B79C", Head = "#1F7A4D", Ring = true, Beak = "#E8C230", BeakD = "#CFA920" },
+        new Var("Rosa", "Pink") { Body = "#F6A6C1", Dark = "#E27FA3", Belly = "#FFD3E1", Beak = "#F28C28", BeakD = "#D9731A" },
+        new Var("Blau", "Blue") { Body = "#6FB1E8", Dark = "#4A90D9", Belly = "#A9D3F5", Beak = "#F5C542", BeakD = "#D9A520" },
+        new Var("Grün", "Green") { Body = "#7ED6A4", Dark = "#3FA66B", Belly = "#BDEBD1", Beak = "#F28C28", BeakD = "#D9731A" },
+        new Var("Lila", "Purple") { Body = "#B79BF0", Dark = "#9B6FE8", Belly = "#D9C9F8", Beak = "#F5C542", BeakD = "#D9A520" } };
+
+    public static readonly Var[] CatVars = {
+        new Var("Grau", "Grey") { Body = "#9AA0AB", Dark = "#6E7480", Muzzle = "#D7DAE0", Stripes = true },
+        new Var("Schwarz", "Black") { Body = "#34343C", Dark = "#1F1F25", Muzzle = "#55555F", EyeC = "#F5E04A", EarIn = "#7A5568" },
+        new Var("Orange", "Orange") { Body = "#F0A04B", Dark = "#C97A24", Muzzle = "#FBD9A6", Stripes = true },
+        new Var("Weiß", "White") { Body = "#F4F2EA", Dark = "#CFCBC0", Muzzle = "#FFFFFF" },
+        new Var("Siamese", "Siamese") { Body = "#F3E2C7", Dark = "#6B4A35", Muzzle = "#FBF1DE", Points = "#6B4A35", EyeC = "#3B8FD6", Tail = "#F3E2C7" },
+        new Var("Lila", "Purple") { Body = "#B79BF0", Dark = "#9B6FE8", Muzzle = "#E1D5FA" },
+        new Var("Blau", "Blue") { Body = "#7C93B5", Dark = "#566B8C", Muzzle = "#C3CFE0" } };
+
+    // One whole animal with its cosmetics. animal: 0 Clawd, 1 duck, 2 cat. The caller has already moved Ox / Oy for sway and lift.
+    public Anchor Animal(int animal, int variant, Pose p, string head, string face, string neck)
+    {
+        Anchor a;
+        Var v = animal == 1 ? DuckVars[variant] : animal == 2 ? CatVars[variant] : null;
+        if (animal == 1) a = Duck(p, v);
+        else if (animal == 2) a = Cat(p, v);
+        else a = Clawd(p, Cfg.ColVals[variant]);
+        Extras(animal == 1 ? "duck" : animal == 2 ? "cat" : "clawd", p.Extra, a, v, 0);
+        if (face != "none") Face(face, a);
+        if (neck != "none") Neck(neck, a);
+        if (head != "none") Hat(head, a);
+        return a;
+    }
+}
+
 class Particle
 {
     public int Kind;
@@ -1307,10 +2162,10 @@ class PetWindow : Window
         new string[] { "Whoa!", "Hey, put me down!", "Where are we going?", "I can fly!" } };
     static readonly string[] CodeBits = { "{ }", "</>", "01", "fn", "==", "//", "[ ]", ";" };
 
-    static readonly string[] ActNames = { "walk", "run", "sleep", "code", "coffee", "read", "dance", "jump", "flip", "wave", "think", "cool", "climb", "juggle", "balloon", "stretch", "chase" };
-    static readonly int[] ActWeights = { 30, 0, 6, 0, 6, 6, 5, 3, 0, 4, 0, 4, 0, 0, 0, 4, 0 };
-    static readonly string[] ActLabelsEn = { "Walk", "Zoom", "Sleep", "Code", "Drink coffee", "Read", "Dance", "Hop", "Flip", "Wave", "Think", "Be cool", "Climb the wall", "Juggle", "Balloon ride", "Stretch", "Chase the mouse" };
-    static readonly string[] ActLabelsDe = { "Spazieren", "Flitzen", "Schlafen", "Programmieren", "Kaffee trinken", "Lesen", "Tanzen", "Hüpfen", "Salto", "Winken", "Nachdenken", "Cool sein", "Wand hochklettern", "Jonglieren", "Ballonfahrt", "Strecken", "Maus jagen" };
+    static readonly string[] ActNames = { "walk", "run", "sleep", "code", "coffee", "read", "dance", "jump", "flip", "wave", "think", "cool", "climb", "juggle", "balloon", "stretch", "chase", "quak", "puddle", "purr", "groom", "scratch" };
+    static readonly int[] ActWeights = { 30, 0, 6, 0, 6, 6, 5, 3, 0, 4, 0, 4, 0, 0, 0, 4, 0, 5, 3, 3, 5, 3 };
+    static readonly string[] ActLabelsEn = { "Walk", "Zoom", "Sleep", "Code", "Drink coffee", "Read", "Dance", "Hop", "Flip", "Wave", "Think", "Be cool", "Climb the wall", "Juggle", "Balloon ride", "Stretch", "Chase the mouse", "Quack", "Splash in a puddle", "Purr", "Wash up", "Scratch the edge" };
+    static readonly string[] ActLabelsDe = { "Spazieren", "Flitzen", "Schlafen", "Programmieren", "Kaffee trinken", "Lesen", "Tanzen", "Hüpfen", "Salto", "Winken", "Nachdenken", "Cool sein", "Wand hochklettern", "Jonglieren", "Ballonfahrt", "Strecken", "Maus jagen", "Quaken", "In der Pfütze planschen", "Schnurren", "Putzen", "An der Kante kratzen" };
 
     readonly Random rnd = new Random();
     readonly PetView view = new PetView();
@@ -1372,6 +2227,11 @@ class PetWindow : Window
     double soundT, level, beat, playT, danceRest;
     bool musicDance;
     double petXpT, saveT = 60, hungerNag = 20, hungerShow;
+    // Pixel Roomies
+    readonly Roomies rm = new Roomies();
+    readonly List<double[]> prints = new List<double[]>();   // duck footprints: world x, world y, seconds left
+    double quakT, printT, topCells = 10;
+    int printFoot, sdir = 1;
     TextBlock stLevel, stXp, stFood;
     Border stXpBar, stFoodBar;
     MenuItem actsItem;
@@ -1397,7 +2257,7 @@ class PetWindow : Window
 
     public PetWindow()
     {
-        Title = "Clawd";
+        Title = "Pixel Roomies";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -1446,10 +2306,11 @@ class PetWindow : Window
     {
         BuildMenu();
         BuildTray();
+        if (Cfg.TrophyNew) { Cfg.TrophyNew = false; Cfg.Save(); }
         Set("fall");
         air = true;
         int hr = DateTime.Now.Hour;
-        Say(hr < 5 ? T("Noch wach?", "Still up?") : hr < 11 ? T("Guten Morgen!", "Good morning!") : hr < 18 ? T("Hallo! Ich bin Clawd.", "Hi! I'm Clawd.") : T("Guten Abend!", "Good evening!"), 4);
+        Say(hr < 5 ? T("Noch wach?", "Still up?") : hr < 11 ? T("Guten Morgen!", "Good morning!") : hr < 18 ? Nm(T("Hallo! Ich bin Clawd.", "Hi! I'm Clawd.")) : T("Guten Abend!", "Good evening!"), 4);
         timer = new DispatcherTimer(DispatcherPriority.Render);
         timer.Interval = TimeSpan.FromMilliseconds(16);
         timer.Tick += Tick;
@@ -1463,6 +2324,17 @@ class PetWindow : Window
             fd.Interval = TimeSpan.FromSeconds(3);
             fd.Tick += delegate { fd.Stop(); StartFeatureDemo(); };
             fd.Start();
+        }
+
+        if (LogPath != null && Environment.GetEnvironmentVariable("CLAWD_ACTS") != null)
+        {
+            // developer helper: run the named activities one after the other, 6 seconds each
+            string[] acts = Environment.GetEnvironmentVariable("CLAWD_ACTS").Split(',');
+            int ai = 0;
+            DispatcherTimer at = new DispatcherTimer();
+            at.Interval = TimeSpan.FromSeconds(6);
+            at.Tick += delegate { Log("activity " + acts[ai % acts.Length]); Set(acts[ai++ % acts.Length]); };
+            at.Start();
         }
 
         // Hand memory we are not touching back to Windows: once after start-up, then now and then
@@ -1562,7 +2434,7 @@ class PetWindow : Window
     }
 
     // Submenu where exactly one entry is ticked. Entries above the current level are shown locked.
-    MenuItem Choice(string header, string[] labels, int selected, Action<int> pick, int[] need = null)
+    MenuItem Choice(string header, string[] labels, int selected, Action<int> pick, int[] need = null, bool top = false)
     {
         MenuItem parent = MI(header, null);
         for (int i = 0; i < labels.Length; i++)
@@ -1571,9 +2443,9 @@ class PetWindow : Window
             MenuItem m = MI(labels[i], null);
             m.IsCheckable = true;
             m.IsChecked = i == selected;
-            if (need != null && need[i] > Cfg.Level && !demo && i != selected)
+            if (need != null && need[i] > (top ? Cfg.TopLevel : Cfg.Level) && !demo && i != selected)
             {
-                m.Header = labels[i] + (need[i] == Cfg.ByFeedback ? "  ·  Feedback" : "  ·  Level " + need[i]);
+                m.Header = labels[i] + "  ·  " + Cfg.NeedText(need[i]);
                 m.IsEnabled = false;
             }
             m.Click += delegate
@@ -1598,8 +2470,19 @@ class PetWindow : Window
 
     static int ActLevel(string name)
     {
-        return name == "flip" ? 2 : name == "juggle" ? 3 : name == "balloon" ? 4 : name == "climb" ? 5 : 1;
+        return name == "flip" ? 2 : name == "juggle" ? 3 : name == "balloon" ? 4 : name == "climb" ? 5 : name == "puddle" ? 2 : name == "scratch" ? 3 : 1;
     }
+
+    // Some activities belong to one animal only
+    static bool ActFor(string n)
+    {
+        if (n == "quak" || n == "puddle") return Cfg.Animal == 1;
+        if (n == "purr" || n == "groom" || n == "scratch") return Cfg.Animal == 2;
+        return true;
+    }
+
+    static string[] NameDe = { "Clawd", "die Ente", "die Katze" }, NameEn = { "Clawd", "the duck", "the cat" };
+    static string Nm(string text) { return text.Replace("Clawd", (Cfg.Lang == "de" ? NameDe : NameEn)[Cfg.Animal]); }
 
     Grid Bar(Brush fill, out Border inner)
     {
@@ -1684,6 +2567,7 @@ class PetWindow : Window
         for (int i = 0; i < ActNames.Length; i++)
         {
             string name = ActNames[i];
+            if (!ActFor(name)) continue;
             MenuItem a = MI(labels[i], delegate { Do(name); });
             if (ActLevel(name) > Cfg.Level && !demo)
             {
@@ -1694,9 +2578,18 @@ class PetWindow : Window
         }
         menu.Items.Add(actsItem);
 
-        menu.Items.Add(Choice(T("Outfit", "Outfit"), Cfg.HatLabels(), Array.IndexOf(Cfg.HatVals, Cfg.Hat),
-            delegate(int i) { Cfg.Hat = Cfg.HatVals[i]; }, Cfg.HatLevel));
-        menu.Items.Add(Choice(T("Farbe", "Color"), Cfg.ColLabels(), Array.IndexOf(Cfg.ColVals, Cfg.Color),
+        menu.Items.Add(Choice(T("Tier", "Animal"), Cfg.AnimalLabels(), Cfg.Animal, SwitchAnimal));
+        MenuItem outfit = MI(T("Outfit", "Outfit"), null);
+        outfit.Items.Add(Choice(T("Kopf", "Head"), Cfg.HatLabels(), Array.IndexOf(Cfg.HatVals, Cfg.Hat),
+            delegate(int i) { Cfg.Hat = Cfg.HatVals[i]; }, Cfg.HatLevel, true));
+        outfit.Items.Add(Choice(T("Gesicht", "Face"), Cfg.FaceLabels(), Array.IndexOf(Cfg.FaceVals, Cfg.Face),
+            delegate(int i) { Cfg.Face = Cfg.FaceVals[i]; }, Cfg.FaceLevel, true));
+        outfit.Items.Add(Choice(T("Hals", "Neck"), Cfg.NeckLabels(), Array.IndexOf(Cfg.NeckVals, Cfg.Neck),
+            delegate(int i) { Cfg.Neck = Cfg.NeckVals[i]; }, Cfg.NeckLevel, true));
+        outfit.Items.Add(Choice(T("Effekt", "Effect"), Cfg.FxLabels(), Array.IndexOf(Cfg.FxVals, Cfg.Fx),
+            delegate(int i) { Cfg.Fx = Cfg.FxVals[i]; }, Cfg.FxLevel, true));
+        menu.Items.Add(outfit);
+        menu.Items.Add(Choice(T("Farbe", "Color"), Cfg.ColLabels(), Cfg.VarA[Cfg.Animal],
             delegate(int i) { Cfg.Color = Cfg.ColVals[i]; ApplyColor(); }, Cfg.ColLevel));
         menu.Items.Add(Choice(T("Größe", "Size"), Cfg.SizeLabels(), Array.IndexOf(Cfg.SizeVals, Cfg.Size),
             delegate(int i) { Cfg.Size = Cfg.SizeVals[i]; ApplyScale(); }));
@@ -1748,7 +2641,7 @@ class PetWindow : Window
     void OpenSetup()
     {
         dialogOpen = true;
-        new SetupWindow().ShowDialog();
+        new SetupWindow(false).ShowDialog();
         dialogOpen = false;
         ApplyScale();
         ApplyColor();
@@ -1767,7 +2660,7 @@ class PetWindow : Window
     void BuildTray()
     {
         tray = new WF.NotifyIcon();
-        tray.Text = "Clawd";
+        tray.Text = "Pixel Roomies";
         tray.Icon = MakeIcon();
 
         trayMenu = new ContextMenu();
@@ -1825,7 +2718,7 @@ class PetWindow : Window
     {
         SD.Bitmap bmp = new SD.Bitmap(32, 32);
         using (SD.Graphics g = SD.Graphics.FromImage(bmp))
-        using (SD.SolidBrush o = new SD.SolidBrush(SD.Color.FromArgb(0xF2, 0x65, 0x22)))
+        using (SD.SolidBrush o = new SD.SolidBrush(SD.ColorTranslator.FromHtml(Cfg.AccentHex(Cfg.Animal))))
         using (SD.SolidBrush k = new SD.SolidBrush(SD.Color.FromArgb(0x1A, 0x19, 0x15)))
         {
             g.Clear(SD.Color.Transparent);
@@ -1887,10 +2780,11 @@ class PetWindow : Window
 
     void PetIt()
     {
-        Set("pet");
+        Set(Cfg.Animal == 2 ? "purr" : "pet");
         for (int i = 0; i < 4; i++)
-            Spawn(P_HEART, -6 + R() * 12, -11 - R() * 3, (R() - 0.5) * 3, -5 - R() * 3, 1.3 + R() * 0.5, null, 0, Pal());
-        Say(Pick(PetLines), 2);
+            Spawn(P_HEART, -6 + R() * 12, -(topCells + 1) - R() * 3, (R() - 0.5) * 3, -5 - R() * 3, 1.3 + R() * 0.5, null, 0, Pal());
+        if (Cfg.Animal == 1 && R() < 0.5) Quak();
+        Say(Cfg.Animal == 2 && R() < 0.4 ? T("Prrr...", "Purr...") : Pick(PetLines), 2);
         if (petXpT <= 0) { petXpT = 8; AddXp(1); }
     }
 
@@ -1913,7 +2807,7 @@ class PetWindow : Window
         if (demo || featDemo) return;
         int before = Cfg.Level;
         Cfg.Xp += n;
-        Spawn(P_TEXT, 0, -15 - HatH(), 0, -4, 1.5, "+" + n + " XP", 2.3, yellow);
+        Spawn(P_TEXT, 0, -(Rise() + 2), 0, -4, 1.5, "+" + n + " XP", 2.3, yellow);
         if (Cfg.Level > before) LevelUp();
         Cfg.Save();
     }
@@ -1936,9 +2830,18 @@ class PetWindow : Window
     {
         List<string> news = new List<string>();
         string[] al = Cfg.Lang == "de" ? ActLabelsDe : ActLabelsEn, cl = Cfg.ColLabels(), hl = Cfg.HatLabels();
-        for (int i = 0; i < ActNames.Length; i++) if (ActLevel(ActNames[i]) == lv) news.Add(al[i]);
+        for (int i = 0; i < ActNames.Length; i++) if (ActLevel(ActNames[i]) == lv && ActFor(ActNames[i])) news.Add(al[i]);
         for (int i = 0; i < cl.Length; i++) if (Cfg.ColLevel[i] == lv) news.Add(cl[i]);
-        for (int i = 0; i < hl.Length; i++) if (Cfg.HatLevel[i] == lv) news.Add(hl[i]);
+        // cosmetics unlock with the highest level of all animals, so they only count when this one is the new top
+        if (lv > Cfg.OthersTop())
+        {
+            int[] hn = Cfg.HatLevel, fxn = Cfg.FxLevel;
+            string[] fl = Cfg.FaceLabels(), nl = Cfg.NeckLabels(), xl = Cfg.FxLabels();
+            for (int i = 0; i < hl.Length; i++) if (hn[i] == lv) news.Add(hl[i]);
+            for (int i = 0; i < fl.Length; i++) if (Cfg.FaceLevel[i] == lv) news.Add(fl[i]);
+            for (int i = 0; i < nl.Length; i++) if (Cfg.NeckLevel[i] == lv) news.Add(nl[i]);
+            for (int i = 0; i < xl.Length; i++) if (fxn[i] == lv) news.Add(xl[i]);
+        }
         string text = "Level " + lv + "!";
         if (news.Count > 0) text += Environment.NewLine + T("Neu: ", "New: ") + string.Join(", ", news.ToArray());
         return text;
@@ -2030,7 +2933,7 @@ class PetWindow : Window
             hungerShow = 0;
             Set("eat");
             Cfg.Food = 60;
-            Spawn(P_TEXT, 0, -15, 0, -4, 1.5, "+5 XP", 2.3, yellow);
+            Spawn(P_TEXT, 0, -(Rise() + 2), 0, -4, 1.5, "+5 XP", 2.3, yellow);
             fdT = 3.8;
         }
         else if (step == 7)
@@ -2117,8 +3020,71 @@ class PetWindow : Window
             case "tophat": return 6;
             case "crown": return 5;
             case "flower": return 6;
+            case "cowboy": return 5;
+            case "wizard": return 11;
+            case "chef": return 8;
+            case "pirate": return 4;
+            case "prop": return 6;
+            case "grad": return 4;
+            case "halo": return 6;
+            case "horns": return 3;
+            case "bow": return 3;
+            case "pumpkin": return 7;
+            case "santa": return 6;
         }
         return 0;
+    }
+
+    // How far above his feet a speech bubble sits (head, hat and a rain cloud)
+    double Rise() { return topCells + 3 + Math.Max(HatH(), Cfg.Fx == "rain" ? 11 : 0); }
+
+    void Quak()
+    {
+        quakT = 0.8;
+        Spawn(P_TEXT, 9, -(Rise() - 1), 2, -3, 1.4, "Quak!", 2.6, B("#E08A1E"));
+    }
+
+    void UpdatePrints(double dt)
+    {
+        for (int i = prints.Count - 1; i >= 0; i--)
+        {
+            prints[i][2] -= dt;
+            if (prints[i][2] <= 0) prints.RemoveAt(i);
+        }
+        quakT -= dt;
+        if (Cfg.Animal != 1) { prints.Clear(); return; }
+        if (!moving || air || dragging) return;
+        printT -= dt;
+        if (printT > 0) return;
+        printT = 0.3;
+        printFoot = 1 - printFoot;
+        prints.Add(new double[] { x + (printFoot == 0 ? -3 : 3) * S, y, 4 });
+    }
+
+    void SwitchAnimal(int an)
+    {
+        if (an == Cfg.Animal) return;
+        Cfg.Save();
+        Cfg.Animal = an;
+        ApplyColor();
+        parts.Clear();
+        prints.Clear();
+        quakT = 0;
+        hungerShow = 0;
+        hungerNag = 20;
+        bubbleT = 0;
+        Cfg.Save();
+        RebuildUi();
+        if (!air) Set("wave");
+        Say(Nm(T("Hallo! Ich bin Clawd.", "Hi! I'm Clawd.")), 3.5);
+    }
+
+    void TrophyEarned()
+    {
+        Cfg.TrophyNew = false;
+        Confetti();
+        Announce(T("7 Tage in Folge! Neu: Goldener Pokal", "7 days in a row! New: Golden trophy"), 5);
+        RebuildUi();
     }
 
     void Do(string name)
@@ -2132,6 +3098,18 @@ class PetWindow : Window
     double R() { return rnd.NextDouble(); }
     string Pick(string[] a) { return a[rnd.Next(a.Length)]; }
     string Pick(string[][] a) { return Pick(a[Cfg.Lang == "de" ? 0 : 1]); }
+    static readonly string[][] DuckLines = {
+        new string[] { "Quak!", "Quak quak!", "Wer hat Brot?", "Heute schon geplanscht?", "Quak... Pause?" },
+        new string[] { "Quack!", "Quack quack!", "Anyone got bread?", "Had a splash today?", "Quack... break time?" } };
+    static readonly string[][] CatLines = {
+        new string[] { "Miau!", "Wo ist mein Futter?", "Ich war schon immer hier.", "*streckt sich*", "Prrr..." },
+        new string[] { "Meow!", "Where's my food?", "I was here first.", "*stretches*", "Purr..." } };
+    string PickIdle()
+    {
+        if (Cfg.Animal == 1 && R() < 0.5) return Pick(DuckLines);
+        if (Cfg.Animal == 2 && R() < 0.5) return Pick(CatLines);
+        return Nm(Pick(IdleLines));
+    }
     double Sn(double v) { return Math.Round(v * dpi) / dpi; }
     double RandX()
     {
@@ -2196,7 +3174,7 @@ class PetWindow : Window
         {
             case "idle":
                 dur = 4 + R() * 8;
-                if (R() < 0.12 && bubbleT <= 0) Say(Pick(IdleLines), 3.5);
+                if (R() < 0.12 && bubbleT <= 0) Say(PickIdle(), 3.5);
                 break;
             case "walk": case "run": tx = RandX(); break;
             case "sleep": dur = 14 + R() * 14; break;
@@ -2213,6 +3191,22 @@ class PetWindow : Window
             case "balloon": dur = 4 + R() * 3; break;
             case "stretch": dur = 2.5; Say(T("*gähn*", "*yawn*"), 2); break;
             case "chase": dur = 9; break;
+            case "quak": dur = 1.9; Quak(); break;
+            case "puddle": dur = 6 + R() * 3; Say(T("Plansch!", "Splash!"), 2); break;
+            case "purr": dur = 3.5; Say(T("Prrr...", "Purr..."), 2.5); break;
+            case "groom": dur = 5 + R() * 2; break;
+            case "scratch":
+                {
+                    // walks to the nearer edge of the window he stands on (or of the screen) and sharpens his claws there
+                    double eL = work.Left, eR = work.Right;
+                    foreach (Plat p in plats) if (p.H == perch) { eL = p.L; eR = p.R; break; }
+                    sdir = x - eL < eR - x ? -1 : 1;
+                    if (R() < 0.3) sdir = -sdir;
+                    tx = sdir > 0 ? eR - 10 * S : eL + 10 * S;
+                    tx = Math.Max(work.Left + 7 * S, Math.Min(work.Right - 7 * S, tx));
+                    dur = 99;
+                }
+                break;
             case "eat": dur = 3.6; break;
             case "pet": dur = 1.5; break;
             case "drag": Say(Pick(DragLines), 2); break;
@@ -2247,7 +3241,12 @@ class PetWindow : Window
 
     static int Weight(int i, bool night)
     {
-        return ActNames[i] == "sleep" && night ? ActWeights[i] * 5 : ActWeights[i];
+        string n = ActNames[i];
+        if (!ActFor(n)) return 0;
+        int w = ActWeights[i];
+        if (n == "chase" && Cfg.Animal > 0) w = 3;   // duck and cat run after the mouse pointer by themselves now and then
+        if (n == "sleep" && Cfg.Animal == 2) w = 14; // cats sleep a lot
+        return n == "sleep" && night ? w * 5 : w;
     }
 
     void Tick(object s, EventArgs e)
@@ -2283,6 +3282,7 @@ class PetWindow : Window
         }
         if (featDemo && (menu == null || !menu.IsOpen)) FeatureDemo(dt);
         if (menu == null || !menu.IsOpen) UpdatePet(dt);
+        UpdatePrints(dt);
         UpdateParticles(dt);
         Place();
         view.InvalidateVisual();
@@ -2294,7 +3294,7 @@ class PetWindow : Window
 
     Brush Pal() { return Palette[rnd.Next(Palette.Length)]; }
 
-    static readonly string[] Busy = { "drag", "fall", "dizzy", "pet", "eat", "jump", "flip", "climb", "balloon", "chase" };
+    static readonly string[] Busy = { "drag", "fall", "dizzy", "pet", "purr", "eat", "jump", "flip", "climb", "balloon", "chase", "scratch" };
 
     bool Calm()
     {
@@ -2309,7 +3309,13 @@ class PetWindow : Window
         if (demo || featDemo) return;
         Cfg.Food = Math.Max(0, Cfg.Food - dt * 100 / 9000); // full -> empty in about 2.5 hours
         saveT -= dt;
-        if (saveT <= 0) { saveT = 60; Cfg.Save(); }
+        if (saveT <= 0)
+        {
+            saveT = 60;
+            Cfg.TouchDay();
+            if (Cfg.TrophyNew) TrophyEarned();
+            Cfg.Save();
+        }
         if (Cfg.Food >= 30) { hungerNag = 5; return; }
         hungerNag -= dt;
         if (hungerNag > 0 || bubbleT > 0 || dragging || air || st == "sleep" || st == "eat") return;
@@ -2651,8 +3657,8 @@ class PetWindow : Window
                 {
                     double target = Math.Max(work.Left + 9 * S, Math.Min(work.Right - 9 * S, cur.X));
                     hopT -= dt;
-                    if (Math.Abs(target - x) > 12 * S) MoveTo(target, 40 * S, dt);
-                    else if (!air && hopT <= 0) { Launch(4); hopT = 0.9; }
+                    if (Math.Abs(target - x) > 12 * S) MoveTo(target, (Cfg.Animal == 2 ? 26 : 40) * S, dt);
+                    else if (!air && hopT <= 0) { Launch(Cfg.Animal == 2 ? 7 : 4); hopT = Cfg.Animal == 2 ? 1.6 : 0.9; }
                     if (t > dur && !air) { Set("idle"); Say(T("Hab dich!", "Gotcha!"), 2); }
                 }
                 break;
@@ -2676,6 +3682,34 @@ class PetWindow : Window
                     for (int i = 0; i < 4; i++)
                         Spawn(P_CRUMB, 10, -9, (R() - 0.5) * 8, -R() * 5, 0.7, null, 0, cookie);
                 if (t > dur) { Set("idle"); Say(T("Lecker!", "Yummy!"), 2); }
+                break;
+            case "quak":
+                if (phase == 0 && t > 0.9) { phase = 1; Quak(); }
+                if (t > dur) Set("idle");
+                break;
+            case "puddle":
+                if (Every(0.3, dt))
+                    for (int i = 0; i < 2; i++)
+                        Spawn(P_CRUMB, -8 + R() * 16, -2, (R() - 0.5) * 8, -4 - R() * 5, 0.8, null, 0, Roomies.K("rain"));
+                if (t > dur) { Set("idle"); Say(T("Herrlich nass!", "Lovely and wet!"), 2); }
+                break;
+            case "purr":
+                if (Every(0.7, dt)) Spawn(P_HEART, -5 + R() * 10, -(topCells - 2), (R() - 0.5) * 3, -5, 1.3, null, 0, Pal());
+                if (t > dur) Set("idle");
+                break;
+            case "groom":
+                if (t > dur) { Set("idle"); Say(T("Alles sauber.", "All clean."), 2); }
+                break;
+            case "scratch":
+                if (phase == 0)
+                {
+                    if (MoveTo(tx, 20 * S, dt)) { phase = 1; t = 0; dur = 4 + R() * 2; Say(T("Meins!", "Mine!"), 1.5); }
+                }
+                else
+                {
+                    if (Every(0.22, dt)) Spawn(P_CRUMB, sdir * 10, -9 + R() * 3, sdir * (2 + R() * 3), -2 - R() * 3, 0.5, null, 0, greyDark);
+                    if (t > dur) Set("idle");
+                }
                 break;
             case "read": case "wave": case "cool": case "juggle": case "pet": case "dizzy":
                 if (t > dur) Set("idle");
@@ -2712,60 +3746,6 @@ class PetWindow : Window
         dc.DrawText(ft, new Point(ox + cx * S - ft.Width / 2, oy + cy * S - ft.Height / 2));
     }
 
-    // Permanent outfit, sitting on top of the head (top = upper edge of the body).
-    void DrawHat(DrawingContext dc, double top)
-    {
-        switch (Cfg.Hat)
-        {
-            case "cap":
-                C(dc, white, -1, top - 5, 2, 1);
-                C(dc, hatBlue, -3, top - 4, 6, 1);
-                C(dc, hatBlue, -5, top - 3, 10, 1);
-                C(dc, hatBlue, -6, top - 2, 12, 1);
-                C(dc, white, -6.5, top - 1, 13, 1.2);
-                break;
-            case "party":
-                C(dc, yellow, -0.5, top - 7, 1, 1);
-                C(dc, pink, -0.5, top - 6, 1, 1);
-                C(dc, blue, -1, top - 5, 2, 1);
-                C(dc, pink, -1.5, top - 4, 3, 1);
-                C(dc, blue, -2, top - 3, 4, 1);
-                C(dc, pink, -2.5, top - 2, 5, 1);
-                C(dc, blue, -3, top - 1, 6, 1);
-                break;
-            case "phones":
-                C(dc, ink, -6.5, top - 1.6, 13, 1.1);
-                C(dc, ink, -8, top - 1, 1.5, 1.6);
-                C(dc, ink, 6.5, top - 1, 1.5, 1.6);
-                C(dc, ink, -8.6, top + 0.5, 1.6, 2.5);
-                C(dc, ink, 7, top + 0.5, 1.6, 2.5);
-                C(dc, teal, -8.6, top + 1, 0.6, 1.5);
-                C(dc, teal, 8, top + 1, 0.6, 1.5);
-                break;
-            case "tophat":
-                C(dc, ink, -3.5, top - 6, 7, 5);
-                C(dc, red, -3.5, top - 2.2, 7, 1.2);
-                C(dc, ink, -5.5, top - 1, 11, 1);
-                break;
-            case "crown":
-                C(dc, crownGold, -4.5, top - 4, 1.5, 2);
-                C(dc, crownGold, -0.75, top - 4.6, 1.5, 2.6);
-                C(dc, crownGold, 3, top - 4, 1.5, 2);
-                C(dc, crownGold, -4.5, top - 2, 9, 2);
-                C(dc, red, -0.5, top - 1.5, 1, 1);
-                C(dc, blue, -3.3, top - 1.5, 1, 1);
-                C(dc, blue, 2.3, top - 1.5, 1, 1);
-                break;
-            case "flower":
-                C(dc, green, -0.5, top - 3, 1, 3);
-                C(dc, green, 0.5, top - 2, 1.5, 1);
-                C(dc, pink, -1.5, top - 5, 3, 1);
-                C(dc, pink, -0.5, top - 6, 1, 3);
-                C(dc, yellow, -0.5, top - 5, 1, 1);
-                break;
-        }
-    }
-
     void Eye(DrawingContext dc, int mode, double ex, double ey)
     {
         // ex = left edge of the 1-cell-wide eye
@@ -2795,8 +3775,9 @@ class PetWindow : Window
     public void Draw(DrawingContext dc)
     {
         double sway = 0, lift = 0, bob, aL = 0, aR = 0, tall = 0;
-        int eye = EYE_OPEN, lx = 0, ly = 0;
-        bool sit = false, dangle = false, glasses = false;
+        int eye = EYE_OPEN, lx = 0, ly = 0, an = Cfg.Animal;
+        bool sit = false, dangle = false, glasses = false, mir = false;
+        string extra = null;
         bool fast = st == "run" || st == "chase";
         int frame = (int)(anim * (fast ? 12 : 6)) % 2;
         int beat = (int)(anim * 6) % 2;
@@ -2881,6 +3862,24 @@ class PetWindow : Window
         }
         if (blinkT < 0 && eye == EYE_OPEN) eye = EYE_CLOSED;
 
+        // What only the duck or only the cat does
+        if (an == 1)
+        {
+            bool dash = (st == "chase" || st == "run") && moving;
+            if (st == "quak") { eye = EYE_OPEN; aL = aR = -(int)(anim * 10) % 2; }
+            if (st == "puddle") { extra = "puddle"; eye = EYE_HAPPY; aL = aR = -2; lift = -0.5; lx = ly = 0; }
+            if (dash) { extra = "run"; aL = aR = -2; lx = 1; ly = 0; lift = -0.4; mir = dir < 0; }
+            if ((quakT > 0 || st == "quak") && extra == null) extra = "quak";
+        }
+        else if (an == 2)
+        {
+            if (st == "sleep") extra = "loaf";
+            else if (st == "purr") { extra = "purr"; eye = EYE_HAPPY; sit = true; lx = ly = 0; }
+            else if (st == "groom") { extra = "groom"; eye = EYE_CLOSED; sit = true; aR = -5 + (int)(anim * 5) % 2; lx = ly = 0; }
+            else if (st == "scratch" && phase == 1) { extra = "scratch"; eye = EYE_CLOSED; aR = -4 + (int)(anim * 8) % 2 * 1.5; lx = ly = 0; mir = sdir < 0; }
+            else if (st == "chase" && !air) { extra = "hunt"; eye = EYE_WIDE; lx = 1; ly = 1; mir = dir < 0; }
+        }
+
         double baseX = CW * S / 2, baseY = (CH - 1) * S;
         ox = baseX + sway * S;
         oy = baseY + lift * S;
@@ -2889,7 +3888,22 @@ class PetWindow : Window
         double bodyBot = sit ? 0 : -2 + bob;
         double armY = -7 + bob + so;
 
+        rm.Dc = dc; rm.S = S; rm.Dpi = dpi;
+        if (an == 1)
+            for (int i = 0; i < prints.Count; i++)
+            {
+                dc.PushOpacity(Math.Min(1, prints[i][2] / 1.5));
+                rm.Ox = baseX; rm.Oy = baseY;
+                rm.Print((prints[i][0] - x) / S, (prints[i][1] - y) / S - 1.2);
+                dc.Pop();
+            }
+        Pose pz = new Pose();
+        pz.Eye = eye; pz.Lx = lx; pz.Ly = ly; pz.AL = aL; pz.AR = aR; pz.Bob = bob; pz.Tall = tall; pz.Sit = sit; pz.Cool = glasses;
+        pz.Dangle = dangle; pz.Moving = moving && !air; pz.Frame = frame; pz.DanglePhase = (int)(anim * 10); pz.Extra = extra;
+        Anchor anc;
+
         if (rot != 0) dc.PushTransform(new RotateTransform(rot, ox, oy - 6 * S));
+        if (mir) dc.PushTransform(new ScaleTransform(-1, 1, ox, 0));
 
         if (st == "balloon")
         {
@@ -2897,6 +3911,9 @@ class PetWindow : Window
             Bmp(dc, Balloon, 4, -25, 1, red, white, 99);
         }
 
+        rm.Ox = ox; rm.Oy = oy;
+        if (an == 0)
+        {
         if (!sit)
         {
             double[] legX = { -6, -4, 3, 5 };
@@ -2927,7 +3944,18 @@ class PetWindow : Window
             C(dc, shine, 2, gy + 1, 1, 1);
         }
 
-        DrawHat(dc, bodyTop);
+            anc = rm.ClawdAnchor(pz);
+        }
+        else
+        {
+            anc = an == 1 ? rm.Duck(pz, Roomies.DuckVars[Cfg.VarA[1]]) : rm.Cat(pz, Roomies.CatVars[Cfg.VarA[2]]);
+            rm.Extras(an == 1 ? "duck" : "cat", extra, anc, null, anim);
+            armY = anc.ArmY;
+        }
+        if (Cfg.Face != "none") rm.Face(Cfg.Face, anc);
+        if (Cfg.Neck != "none") rm.Neck(Cfg.Neck, anc);
+        if (Cfg.Hat != "none") rm.Hat(Cfg.Hat, anc);
+        topCells = -anc.FxTop;
 
         switch (st)
         {
@@ -2969,6 +3997,8 @@ class PetWindow : Window
                 break;
         }
 
+        if (Cfg.Fx != "none") rm.Fx(Cfg.Fx, anc);
+        if (mir) dc.Pop();
         if (rot != 0) dc.Pop();
 
         // Overlays (neither rotated nor swayed with the body)
@@ -3020,7 +4050,7 @@ class PetWindow : Window
         // clamp to the screen first, then to the window
         double bx = Math.Max(work.Left + bw / 2 + 6, Math.Min(work.Right - bw / 2 - 6, winLeft + mid)) - winLeft;
         bx = Math.Max(bw / 2 + 6, Math.Min(winW - bw / 2 - 6, bx));
-        double by = (CH - 1) * S - (bubbleSit ? 11 : 13) * S - HatH() * S - tail - 0.6 * S;
+        double by = (CH - 1) * S - Rise() * S - tail - 0.6 * S;
         Rect r = new Rect(bx - bw / 2, by - bh, bw, bh);
         double rad = Math.Min(bh / 2, 15);
         double tailX = Math.Max(r.Left + rad + tail, Math.Min(r.Right - rad - tail, mid));
@@ -3052,7 +4082,7 @@ class PetWindow : Window
         g.Freeze();
         dc.DrawGeometry(fill, null, g);
         dc.DrawRoundedRectangle(fill, null, r, rad, rad);
-        dc.DrawRoundedRectangle(bubbleSheen, dark ? bubbleRimDark : bubbleRimLight, new Rect(r.X + 0.5, r.Y + 0.5, r.Width - 1, r.Height - 1), rad, rad);
+        dc.DrawRoundedRectangle(bubbleSheen, AccentPen(), new Rect(r.X + 0.5, r.Y + 0.5, r.Width - 1, r.Height - 1), rad, rad);
         dc.DrawText(ft, new Point(bx - maxW / 2, r.Top + padY - 0.5));
 
         dc.Pop();
@@ -3066,7 +4096,7 @@ class PetWindow : Window
         bool dark = Glass.Dark;
         Brush fill = dark ? bubbleDark : bubbleLight;
         double mid = CW * S / 2, r = Math.Max(14, 3.3 * S);
-        double feet = (CH - 1) * S - (bubbleSit ? 11 : 13) * S - HatH() * S;
+        double feet = (CH - 1) * S - Rise() * S;
         double cy = feet - r - 2.2 * S;
         double k = Math.Min(1, bubbleAge / 0.3) - 1;
         double scale = 0.6 + 0.4 * (1 + 2.0 * k * k * k + 1.0 * k * k);
@@ -3077,7 +4107,7 @@ class PetWindow : Window
         for (int i = 4; i >= 1; i--) dc.DrawEllipse(bubbleShadow, null, new Point(mid, cy + 3), r + i, r + i);
         dc.DrawEllipse(fill, null, new Point(mid - 0.5 * r, feet - 0.6 * S), 0.5 * S, 0.5 * S);
         dc.DrawEllipse(fill, null, new Point(mid - 0.3 * r, feet - 1.7 * S), 0.8 * S, 0.8 * S);
-        dc.DrawEllipse(fill, dark ? bubbleRimDark : bubbleRimLight, new Point(mid, cy), r, r);
+        dc.DrawEllipse(fill, AccentPen(), new Point(mid, cy), r, r);
         double u = Math.Round(r * 0.3);
         for (int row = 0; row < Cookie.Length; row++)
             for (int col = 0; col < Cookie[row].Length; col++)
@@ -3093,6 +4123,19 @@ class PetWindow : Window
     static readonly Brush bubbleShadow = B("#12000000"), bubbleDark = B("#EB26262A"), bubbleLight = B("#F5FFFFFF");
     static readonly Brush bubbleSheen = MakeSheen();
     static readonly Pen bubbleRimDark = MakeRim("#70FFFFFF", "#18FFFFFF"), bubbleRimLight = MakeRim("#FFFFFFFF", "#30000000");
+
+    static readonly Pen[] accentPens = new Pen[3];
+    static Pen AccentPen()
+    {
+        int a = Cfg.Animal;
+        if (accentPens[a] == null)
+        {
+            Pen p = new Pen(B(Cfg.AccentHex(a)), 1.4);
+            p.Freeze();
+            accentPens[a] = p;
+        }
+        return accentPens[a];
+    }
 
     static Brush MakeSheen()
     {
@@ -3123,33 +4166,61 @@ class PetWindow : Window
 
     // ---------- Developer helper: render a sheet of poses into a PNG ----------
 
-    public static void RenderSheet(string path)
+    public static void RenderSheet(string path, string animal, string mode)
     {
+        Cfg.ReadOnly = true;
+        Cfg.Animal = Math.Max(0, Array.IndexOf(Cfg.AnimalKeys, animal));
         PetWindow w = new PetWindow();
-        string[] states = { "idle", "walk", "sleep", "code", "coffee", "read", "dance", "wave", "cool", "juggle", "balloon", "stretch", "eat", "pet", "drag", "dizzy" };
-        int cols = 4, rows = (states.Length + cols - 1) / cols;
+        // each tile: state, colour, head, face, neck, effect
+        List<string[]> tiles = new List<string[]>();
+        if (mode == "colors")
+            for (int v = 0; v < 7; v++) tiles.Add(new string[] { "idle", v.ToString(), "none", "none", "none", "none" });
+        else if (mode == "cos")
+        {
+            foreach (string h in Cfg.HatVals) if (h != "none") tiles.Add(new string[] { "idle", "0", h, "none", "none", "none" });
+            foreach (string f in Cfg.FaceVals) if (f != "none") tiles.Add(new string[] { "idle", "0", "none", f, "none", "none" });
+            foreach (string n in Cfg.NeckVals) if (n != "none") tiles.Add(new string[] { "idle", "0", "none", "none", n, "none" });
+            foreach (string x in Cfg.FxVals) if (x != "none") tiles.Add(new string[] { "idle", "0", "none", "none", "none", x });
+            tiles.Add(new string[] { "idle", "0", "wizard", "nerd", "bowtie", "sparkle" });
+        }
+        else
+        {
+            List<string> states = new List<string> { "idle", "walk", "sleep", "code", "coffee", "read", "dance", "wave", "cool", "juggle", "balloon", "stretch", "eat", "pet", "drag", "dizzy" };
+            if (Cfg.Animal == 1) states.AddRange(new string[] { "quak", "puddle", "run" });
+            if (Cfg.Animal == 2) states.AddRange(new string[] { "purr", "groom", "scratch", "chase" });
+            foreach (string st in states)
+                tiles.Add(new string[] { st, "0", st == "idle" ? "crown" : st == "walk" ? "cap" : st == "dance" ? "phones" : st == "wave" ? "party" : st == "cool" ? "tophat" : "none", "none", "none", "none" });
+        }
+        int cols = Math.Min(6, tiles.Count), rows = (tiles.Count + cols - 1) / cols;
         double tw = CW * w.S, th = CH * w.S;
         DrawingVisual dv = new DrawingVisual();
         using (DrawingContext dc = dv.RenderOpen())
         {
             dc.DrawRectangle(B("#243447"), null, new Rect(0, 0, cols * tw, rows * th));
-            for (int i = 0; i < states.Length; i++)
+            for (int i = 0; i < tiles.Count; i++)
             {
+                string[] tl = tiles[i];
+                string st = tl[0];
                 w.parts.Clear();
-                w.st = states[i];
-                w.t = 3.1; w.anim = 1.3; w.phase = 0; w.rot = 0; w.blinkT = 1;
-                w.moving = states[i] == "walk";
+                w.prints.Clear();
+                w.st = st;
+                w.t = 3.1; w.anim = 1.3; w.phase = 0; w.rot = 0; w.blinkT = 1; w.quakT = 0; w.sdir = 1; w.dir = 1;
+                w.moving = st == "walk" || st == "run" || st == "chase";
                 w.bubbleT = 0;
                 w.x = 500; w.y = 500; w.cur = new Point(500, 500); w.winLeft = 500 - tw / 2;
                 w.work = new Rect(0, 0, 1000, 1000);
-                if (states[i] == "climb") { w.phase = 1; w.rot = 90; w.moving = true; }
-                if (states[i] == "sleep") w.Spawn(P_TEXT, 8, -12, 0, 0, 2, "z", 2.6, cream);
-                if (states[i] == "pet") { w.Spawn(P_HEART, -4, -13, 0, 0, 2, null, 0, red); w.Spawn(P_HEART, 4, -15, 0, 0, 2, null, 0, red); }
-                if (states[i] == "code") { w.typed = true; w.tapT = 0.1; w.Spawn(P_TEXT, -3, -13, 0, 0, 2, "{ }", 2.2, green); w.Spawn(P_TEXT, 5, -16, 0, 0, 2, "</>", 2.2, yellow); }
-                if (states[i] == "dance") { w.Spawn(P_TEXT, -9, -15, 0, 0, 2, "\u266A", 3, pink); w.Spawn(P_TEXT, 8, -17, 0, 0, 2, "\u266B", 3, blue); }
-                if (states[i] == "idle") { w.bubbleText = "Hi! I'm Clawd."; w.bubbleT = 3; }
-                Cfg.Hat = states[i] == "idle" ? "crown" : states[i] == "walk" ? "cap" : states[i] == "dance" ? "phones"
-                    : states[i] == "wave" ? "party" : states[i] == "cool" ? "tophat" : "none";
+                if (st == "climb") { w.phase = 1; w.rot = 90; w.moving = true; }
+                if (st == "scratch") w.phase = 1;
+                if (st == "chase") w.cur = new Point(560, 500);
+                if (st == "sleep") w.Spawn(P_TEXT, 8, -12, 0, 0, 2, "z", 2.6, cream);
+                if (st == "pet" || st == "purr") { w.Spawn(P_HEART, -4, -13, 0, 0, 2, null, 0, red); w.Spawn(P_HEART, 4, -15, 0, 0, 2, null, 0, red); }
+                if (st == "quak") w.Spawn(P_TEXT, 9, -16, 0, 0, 2, "Quak!", 2.6, B("#E08A1E"));
+                if (st == "code") { w.typed = true; w.tapT = 0.1; w.Spawn(P_TEXT, -3, -13, 0, 0, 2, "{ }", 2.2, green); w.Spawn(P_TEXT, 5, -16, 0, 0, 2, "</>", 2.2, yellow); }
+                if (st == "dance") { w.Spawn(P_TEXT, -9, -15, 0, 0, 2, "\u266A", 3, pink); w.Spawn(P_TEXT, 8, -17, 0, 0, 2, "\u266B", 3, blue); }
+                if (st == "idle" && mode == "poses") { w.bubbleText = Nm("Hi! I'm Clawd."); w.bubbleT = 3; }
+                Cfg.VarA[Cfg.Animal] = int.Parse(tl[1]);
+                Cfg.Hat = tl[2]; Cfg.Face = tl[3]; Cfg.Neck = tl[4]; Cfg.Fx = tl[5];
+                w.ApplyColor();
                 dc.PushTransform(new TranslateTransform((i % cols) * tw, (i / cols) * th));
                 w.Draw(dc);
                 w.bubbleAge = 1;
