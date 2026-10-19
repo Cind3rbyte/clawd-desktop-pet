@@ -2081,6 +2081,166 @@ class Particle
     public Brush Brush;
 }
 
+// Duck footprints stay where she walked: a click-through overlay over the whole screen (the pet window itself is only a few cells wide)
+class TrackView : FrameworkElement
+{
+    public List<double[]> Prints;   // x, y, seconds left, cell size, heading in degrees
+    readonly Roomies rm = new Roomies();
+
+    protected override void OnRender(DrawingContext dc)
+    {
+        PresentationSource src = PresentationSource.FromVisual(this);
+        rm.Dpi = src != null && src.CompositionTarget != null ? src.CompositionTarget.TransformToDevice.M11 : 1;
+        rm.Dc = dc;
+        foreach (double[] p in Prints)
+        {
+            dc.PushOpacity(Math.Min(1, p[2] / 4.0) * 0.85);
+            dc.PushTransform(new RotateTransform(p[4], p[0], p[1]));
+            rm.S = p[3];
+            rm.Ox = p[0];
+            rm.Oy = p[1];
+            rm.Print(0, -1.2);
+            dc.Pop();
+            dc.Pop();
+        }
+    }
+}
+
+class TrackWindow : Window
+{
+    [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
+    [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr h, int i, int v);
+    readonly TrackView view = new TrackView();
+
+    public TrackWindow(List<double[]> prints)
+    {
+        view.Prints = prints;
+        WindowStyle = WindowStyle.None;
+        AllowsTransparency = true;
+        Background = Brushes.Transparent;
+        ShowInTaskbar = false;
+        ShowActivated = false;
+        Topmost = true;
+        ResizeMode = ResizeMode.NoResize;
+        IsHitTestVisible = false;
+        Left = 0;
+        Top = 0;
+        Width = SystemParameters.PrimaryScreenWidth;
+        Height = SystemParameters.PrimaryScreenHeight;
+        Content = view;
+        SourceInitialized += delegate
+        {
+            IntPtr h = new WindowInteropHelper(this).Handle;
+            SetWindowLong(h, -20, GetWindowLong(h, -20) | 0x20 | 0x80 | 0x08000000); // click-through, no Alt+Tab entry, never takes focus
+        };
+    }
+
+    public void Refresh() { view.InvalidateVisual(); }
+}
+
+// The little text window the duck drags onto the screen with a quote in it
+class QuoteWindow : Window
+{
+    public const double W = 270;
+    [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
+    [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr h, int i, int v);
+    readonly DispatcherTimer life = new DispatcherTimer();
+    bool closing;
+
+    public QuoteWindow(string quote, string who)
+    {
+        bool dark = Glass.Dark;
+        Brush ink = PetWindow.B("#1A1915"), paper = PetWindow.B(dark ? "#2B2B2F" : "#FFFDF3"), text = dark ? Brushes.White : ink;
+        WindowStyle = WindowStyle.None;
+        AllowsTransparency = true;
+        Background = Brushes.Transparent;
+        ShowInTaskbar = false;
+        ShowActivated = false;
+        Topmost = true;
+        ResizeMode = ResizeMode.NoResize;
+        Width = W;
+        SizeToContent = SizeToContent.Height;
+        Left = -5000;
+        Top = -5000;
+
+        Border frame = new Border();
+        frame.BorderBrush = ink;
+        frame.BorderThickness = new Thickness(2);
+        frame.CornerRadius = new CornerRadius(4);
+        frame.Background = paper;
+        frame.Cursor = Cursors.Hand;
+        StackPanel sp = new StackPanel();
+
+        Border bar = new Border();
+        bar.Background = PetWindow.B("#F5C542");
+        bar.Padding = new Thickness(8, 3, 8, 3);
+        Grid hg = new Grid();
+        TextBlock title = new TextBlock();
+        title.Text = Cfg.T("ente.txt – Editor", "duck.txt - Notepad");
+        title.FontSize = 11;
+        title.FontWeight = FontWeights.SemiBold;
+        title.Foreground = ink;
+        TextBlock x = new TextBlock();
+        x.Text = "x";
+        x.FontSize = 11;
+        x.FontWeight = FontWeights.Bold;
+        x.Foreground = ink;
+        x.HorizontalAlignment = HorizontalAlignment.Right;
+        hg.Children.Add(title);
+        hg.Children.Add(x);
+        bar.Child = hg;
+        sp.Children.Add(bar);
+
+        TextBlock q = new TextBlock();
+        q.Text = Cfg.Lang == "de" ? "„" + quote + "“" : "“" + quote + "”";
+        q.TextWrapping = TextWrapping.Wrap;
+        q.FontFamily = new FontFamily("Segoe UI");
+        q.FontSize = 15;
+        q.Foreground = text;
+        q.Margin = new Thickness(14, 12, 14, 0);
+        sp.Children.Add(q);
+        TextBlock by = new TextBlock();
+        by.Text = "— " + who;
+        by.FontSize = 12;
+        by.FontStyle = FontStyles.Italic;
+        by.Foreground = text;
+        by.Opacity = 0.7;
+        by.HorizontalAlignment = HorizontalAlignment.Right;
+        by.Margin = new Thickness(14, 6, 14, 10);
+        sp.Children.Add(by);
+        frame.Child = sp;
+        Content = frame;
+
+        SourceInitialized += delegate
+        {
+            IntPtr h = new WindowInteropHelper(this).Handle;
+            SetWindowLong(h, -20, GetWindowLong(h, -20) | 0x80 | 0x08000000);
+        };
+        MouseLeftButtonUp += delegate { Fade(); };
+        life.Interval = TimeSpan.FromSeconds(30);   // if the duck never gets to drop it
+        life.Tick += delegate { Fade(); };
+        life.Start();
+    }
+
+    // The duck let go: it stays a while, then goes away
+    public void Drop()
+    {
+        life.Stop();
+        life.Interval = TimeSpan.FromSeconds(14);
+        life.Start();
+    }
+
+    void Fade()
+    {
+        if (closing) return;
+        closing = true;
+        life.Stop();
+        DoubleAnimation a = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(0.5));
+        a.Completed += delegate { Close(); };
+        BeginAnimation(OpacityProperty, a);
+    }
+}
+
 class PetView : FrameworkElement
 {
     public PetWindow Pet;
@@ -2162,10 +2322,10 @@ class PetWindow : Window
         new string[] { "Whoa!", "Hey, put me down!", "Where are we going?", "I can fly!" } };
     static readonly string[] CodeBits = { "{ }", "</>", "01", "fn", "==", "//", "[ ]", ";" };
 
-    static readonly string[] ActNames = { "walk", "run", "sleep", "code", "coffee", "read", "dance", "jump", "flip", "wave", "think", "cool", "climb", "juggle", "balloon", "stretch", "chase", "quak", "puddle", "purr", "groom", "scratch" };
-    static readonly int[] ActWeights = { 30, 0, 6, 0, 6, 6, 5, 3, 0, 4, 0, 4, 0, 0, 0, 4, 0, 5, 3, 3, 5, 3 };
-    static readonly string[] ActLabelsEn = { "Walk", "Zoom", "Sleep", "Code", "Drink coffee", "Read", "Dance", "Hop", "Flip", "Wave", "Think", "Be cool", "Climb the wall", "Juggle", "Balloon ride", "Stretch", "Chase the mouse", "Quack", "Splash in a puddle", "Purr", "Wash up", "Scratch the edge" };
-    static readonly string[] ActLabelsDe = { "Spazieren", "Flitzen", "Schlafen", "Programmieren", "Kaffee trinken", "Lesen", "Tanzen", "Hüpfen", "Salto", "Winken", "Nachdenken", "Cool sein", "Wand hochklettern", "Jonglieren", "Ballonfahrt", "Strecken", "Maus jagen", "Quaken", "In der Pfütze planschen", "Schnurren", "Putzen", "An der Kante kratzen" };
+    static readonly string[] ActNames = { "walk", "run", "sleep", "code", "coffee", "read", "dance", "jump", "flip", "wave", "think", "cool", "climb", "juggle", "balloon", "stretch", "chase", "quak", "puddle", "purr", "groom", "scratch", "quote" };
+    static readonly int[] ActWeights = { 30, 0, 6, 0, 6, 6, 5, 3, 0, 4, 0, 4, 0, 0, 0, 4, 0, 5, 3, 3, 5, 3, 3 };
+    static readonly string[] ActLabelsEn = { "Walk", "Zoom", "Sleep", "Code", "Drink coffee", "Read", "Dance", "Hop", "Flip", "Wave", "Think", "Be cool", "Climb the wall", "Juggle", "Balloon ride", "Stretch", "Chase the mouse", "Quack", "Splash in a puddle", "Purr", "Wash up", "Scratch the edge", "Bring a quote" };
+    static readonly string[] ActLabelsDe = { "Spazieren", "Flitzen", "Schlafen", "Programmieren", "Kaffee trinken", "Lesen", "Tanzen", "Hüpfen", "Salto", "Winken", "Nachdenken", "Cool sein", "Wand hochklettern", "Jonglieren", "Ballonfahrt", "Strecken", "Maus jagen", "Quaken", "In der Pfütze planschen", "Schnurren", "Putzen", "An der Kante kratzen", "Zitat bringen" };
 
     readonly Random rnd = new Random();
     readonly PetView view = new PetView();
@@ -2185,7 +2345,7 @@ class PetWindow : Window
 
     // State
     string st = "idle", lastAct = "";
-    double t, dur, anim, x, y, vx, vy, tx, rot, climbTop, spawnT, hopT, blinkT = 2, maxImpact;
+    double t, dur, anim, x, y, vx, vy, tx, ty, rot, climbTop, spawnT, hopT, blinkT = 2, maxImpact;
     int phase, hops, side, dir = 1;
     bool air, moving;
     Rect work = SystemParameters.WorkArea;
@@ -2230,8 +2390,23 @@ class PetWindow : Window
     // Pixel Roomies
     readonly Roomies rm = new Roomies();
     readonly List<double[]> prints = new List<double[]>();   // duck footprints: world x, world y, seconds left
-    double quakT, printT, topCells = 10;
-    int printFoot, sdir = 1;
+    double quakT, printT, topCells = 10, jumpY, lastPx, lastPy;
+    int printFoot, sdir = 1, qdir = 1;
+    TrackWindow track;
+    QuoteWindow quoteWin;
+
+    static readonly string[][] Quotes = {
+        new string[] { "Fantasie ist wichtiger als Wissen.", "Imagination is more important than knowledge.", "Albert Einstein" },
+        new string[] { "Ich denke, also bin ich.", "I think, therefore I am.", "René Descartes" },
+        new string[] { "Das Einzige, was wir zu fürchten haben, ist die Furcht selbst.", "The only thing we have to fear is fear itself.", "Franklin D. Roosevelt" },
+        new string[] { "Ein kleiner Schritt für einen Menschen, ein riesiger Sprung für die Menschheit.", "That's one small step for man, one giant leap for mankind.", "Neil Armstrong" },
+        new string[] { "Ich habe einen Traum.", "I have a dream.", "Martin Luther King Jr." },
+        new string[] { "Bleib hungrig, bleib verrückt.", "Stay hungry, stay foolish.", "Steve Jobs" },
+        new string[] { "Der Mensch ist, was er isst.", "Man is what he eats.", "Ludwig Feuerbach" },
+        new string[] { "Ich bin ein Berliner.", "Ich bin ein Berliner.", "John F. Kennedy" },
+        new string[] { "Es ist nicht genug zu wissen, man muss auch anwenden.", "Knowing is not enough; we must apply.", "Johann Wolfgang von Goethe" },
+        new string[] { "Ich weiß, dass ich nichts weiß.", "I know that I know nothing.", "Sokrates" },
+        new string[] { "Im Leben gibt es nichts zu fürchten, es gibt nur zu verstehen.", "Nothing in life is to be feared, it is only to be understood.", "Marie Curie" } };
     TextBlock stLevel, stXp, stFood;
     Border stXpBar, stFoodBar;
     MenuItem actsItem;
@@ -2476,7 +2651,7 @@ class PetWindow : Window
     // Some activities belong to one animal only
     static bool ActFor(string n)
     {
-        if (n == "quak" || n == "puddle") return Cfg.Animal == 1;
+        if (n == "quak" || n == "puddle" || n == "quote") return Cfg.Animal == 1;
         if (n == "purr" || n == "groom" || n == "scratch") return Cfg.Animal == 2;
         return true;
     }
@@ -3038,6 +3213,22 @@ class PetWindow : Window
     // How far above his feet a speech bubble sits (head, hat and a rain cloud)
     double Rise() { return topCells + 3 + Math.Max(HatH(), Cfg.Fx == "rain" ? 11 : 0); }
 
+    // The duck walks all over the screen, not only along the taskbar (like Desktop Goose)
+    bool Free() { return Cfg.Animal == 1 && st != "fall" && st != "drag"; }
+
+    double FreeY() { return work.Top + 24 * S + R() * Math.Max(0, work.Bottom - work.Top - 24 * S); }
+
+    bool MoveTo2(double px, double py, double speed, double dt)
+    {
+        double dx = px - x, dy = py - y, d = Math.Sqrt(dx * dx + dy * dy);
+        if (d <= speed * dt) { x = px; y = py; return true; }
+        if (Math.Abs(dx) > 0.5) dir = dx > 0 ? 1 : -1;
+        x += dx / d * speed * dt;
+        y += dy / d * speed * dt;
+        moving = true;
+        return false;
+    }
+
     void Quak()
     {
         quakT = 0.8;
@@ -3046,19 +3237,37 @@ class PetWindow : Window
 
     void UpdatePrints(double dt)
     {
+        quakT -= dt;
         for (int i = prints.Count - 1; i >= 0; i--)
         {
             prints[i][2] -= dt;
             if (prints[i][2] <= 0) prints.RemoveAt(i);
         }
-        quakT -= dt;
-        if (Cfg.Animal != 1) { prints.Clear(); return; }
-        if (!moving || air || dragging) return;
-        printT -= dt;
-        if (printT > 0) return;
-        printT = 0.3;
-        printFoot = 1 - printFoot;
-        prints.Add(new double[] { x + (printFoot == 0 ? -3 : 3) * S, y, 4 });
+        double hx = x - lastPx, hy = y - lastPy;
+        lastPx = x; lastPy = y;
+        if (Cfg.Animal != 1) prints.Clear();
+        else if (moving && !air && !dragging)
+        {
+            printT -= dt;
+            if (printT <= 0)
+            {
+                printT = 0.32;
+                printFoot = 1 - printFoot;
+                double len = Math.Sqrt(hx * hx + hy * hy);
+                if (len < 0.01) { hx = dir; hy = 0; len = 1; }
+                hx /= len; hy /= len;
+                double side = (printFoot == 0 ? -1 : 1) * 2.5 * S;
+                // toes point the way she walks, left and right foot alternate
+                prints.Add(new double[] { x - hy * side, y + hx * side, 12, S, Math.Atan2(hy, hx) * 180 / Math.PI + 90 });
+            }
+        }
+        if (prints.Count > 0)
+        {
+            if (track == null) track = new TrackWindow(prints);
+            if (!track.IsVisible) { track.Show(); topT = 0; }
+            track.Refresh();
+        }
+        else if (track != null && track.IsVisible) track.Hide();
     }
 
     void SwitchAnimal(int an)
@@ -3152,6 +3361,7 @@ class PetWindow : Window
 
     void Launch(double cells)
     {
+        if (!air) jumpY = y;
         vy = -Math.Sqrt(2 * 260 * S * cells * S);
         air = true;
     }
@@ -3176,7 +3386,22 @@ class PetWindow : Window
                 dur = 4 + R() * 8;
                 if (R() < 0.12 && bubbleT <= 0) Say(PickIdle(), 3.5);
                 break;
-            case "walk": case "run": tx = RandX(); break;
+            case "walk": case "run":
+                tx = RandX();
+                if (Cfg.Animal == 1) { tx = work.Left + 10 * S + R() * Math.Max(0, work.Width - 20 * S); ty = FreeY(); perch = IntPtr.Zero; }
+                break;
+            case "quote":
+                {
+                    // out of the screen edge with a text window in the beak
+                    qdir = R() < 0.5 ? 1 : -1;
+                    tx = qdir > 0 ? work.Left + 6 * S : work.Right - 6 * S;
+                    ty = FreeY();
+                    perch = IntPtr.Zero;
+                    dur = 99;
+                    string[] q = Quotes[rnd.Next(Quotes.Length)];
+                    quoteWin = new QuoteWindow(Cfg.Lang == "de" ? q[0] : q[1], q[2]);
+                }
+                break;
             case "sleep": dur = 14 + R() * 14; break;
             case "code": dur = 10 + R() * 10; typed = false; if (R() < 0.6) Say(Pick(CodeLines), 3); break;
             case "coffee": dur = 8 + R() * 5; break;
@@ -3298,7 +3523,7 @@ class PetWindow : Window
 
     bool Calm()
     {
-        return !air && !dragging && !pressed && y >= Ground - 0.5 && Array.IndexOf(Busy, st) < 0;
+        return !air && !dragging && !pressed && (y >= Ground - 0.5 || Free()) && Array.IndexOf(Busy, st) < 0;
     }
 
     // Hunger grows slowly while the app runs; when it gets bad he asks for food.
@@ -3504,7 +3729,14 @@ class PetWindow : Window
 
         double top;
         IntPtr h;
-        if (!FindSurface(x, y0, y, out top, out h)) return;
+        if (Cfg.Animal == 1 && (st == "jump" || st == "flip"))
+        {
+            // the free duck lands where she took off
+            if (y < jumpY) return;
+            top = jumpY;
+            h = perch;
+        }
+        else if (!FindSurface(x, y0, y, out top, out h)) return;
         y = top;
         if (st == "fall" && vy > 60 * S)
         {
@@ -3559,7 +3791,8 @@ class PetWindow : Window
             return;
         }
 
-        bool floating = st == "climb" || st == "balloon";
+        bool floating = st == "climb" || st == "balloon" || Free();
+        if (Free()) perch = IntPtr.Zero;
         // The window under him was moved, closed or covered: down he goes
         if (perch != IntPtr.Zero && !air && !PerchOk())
         {
@@ -3586,10 +3819,43 @@ class PetWindow : Window
                 }
                 break;
             case "walk":
-                if (MoveTo(tx, 12 * S, dt)) Set("idle");
+                if (Cfg.Animal == 1 ? MoveTo2(tx, ty, 16 * S, dt) : MoveTo(tx, 12 * S, dt)) Set("idle");
                 break;
             case "run":
-                if (MoveTo(tx, 45 * S, dt)) Set("idle");
+                if (Cfg.Animal == 1 ? MoveTo2(tx, ty, 45 * S, dt) : MoveTo(tx, 45 * S, dt)) Set("idle");
+                break;
+            case "quote":
+                if (phase == 0)
+                {
+                    if (MoveTo2(tx, ty, 30 * S, dt))
+                    {
+                        // turn round and pull the window onto the screen
+                        phase = 1;
+                        dir = qdir;
+                        double lo = qdir > 0 ? work.Left + QuoteWindow.W + 12 * S : work.Left + 6 * S;
+                        double hi = qdir > 0 ? work.Right - 6 * S : work.Right - QuoteWindow.W - 12 * S;
+                        tx = hi > lo ? lo + R() * (hi - lo) : (work.Left + work.Right) / 2;
+                        ty = FreeY();
+                        quoteWin.Show();
+                    }
+                }
+                else if (phase == 1)
+                {
+                    bool there = MoveTo2(tx, ty, 14 * S, dt);
+                    quoteWin.Left = qdir > 0 ? x - 7 * S - QuoteWindow.W : x + 7 * S;
+                    quoteWin.Top = y - Math.Max(40, quoteWin.ActualHeight) * 0.8;
+                    topT = 0;
+                    if (there)
+                    {
+                        phase = 2;
+                        t = 0;
+                        quoteWin.Drop();
+                        quoteWin = null;
+                        Quak();
+                        Say(T("Für dich!", "For you!"), 2.5);
+                    }
+                }
+                else if (t > 3.5) Set("idle");
                 break;
             case "sleep":
                 if (Every(1.3, dt)) Spawn(P_TEXT, 6, -9, 2.2, -3.5, 2.4, "z", 2.2, Pal());
@@ -3657,7 +3923,9 @@ class PetWindow : Window
                 {
                     double target = Math.Max(work.Left + 9 * S, Math.Min(work.Right - 9 * S, cur.X));
                     hopT -= dt;
-                    if (Math.Abs(target - x) > 12 * S) MoveTo(target, (Cfg.Animal == 2 ? 26 : 40) * S, dt);
+                    double ty2 = Math.Max(work.Top + 24 * S, Math.Min(work.Bottom, cur.Y + 6 * S));
+                    if (Cfg.Animal == 1) { if (Math.Abs(target - x) > 12 * S || Math.Abs(ty2 - y) > 12 * S) MoveTo2(target, ty2, 40 * S, dt); }
+                    else if (Math.Abs(target - x) > 12 * S) MoveTo(target, (Cfg.Animal == 2 ? 26 : 40) * S, dt);
                     else if (!air && hopT <= 0) { Launch(Cfg.Animal == 2 ? 7 : 4); hopT = Cfg.Animal == 2 ? 1.6 : 0.9; }
                     if (t > dur && !air) { Set("idle"); Say(T("Hab dich!", "Gotcha!"), 2); }
                 }
@@ -3717,7 +3985,8 @@ class PetWindow : Window
         }
 
         x = Math.Max(work.Left + 6 * S, Math.Min(work.Right - 6 * S, x));
-        if (!air && st != "climb" && st != "balloon" && y > ground) y = ground;
+        if (Free()) y = Math.Max(work.Top + 20 * S, Math.Min(work.Bottom, y));
+        else if (!air && st != "climb" && st != "balloon" && y > ground) y = ground;
     }
 
     // ---------- Drawing ----------
@@ -3889,14 +4158,6 @@ class PetWindow : Window
         double armY = -7 + bob + so;
 
         rm.Dc = dc; rm.S = S; rm.Dpi = dpi;
-        if (an == 1)
-            for (int i = 0; i < prints.Count; i++)
-            {
-                dc.PushOpacity(Math.Min(1, prints[i][2] / 1.5));
-                rm.Ox = baseX; rm.Oy = baseY;
-                rm.Print((prints[i][0] - x) / S, (prints[i][1] - y) / S - 1.2);
-                dc.Pop();
-            }
         Pose pz = new Pose();
         pz.Eye = eye; pz.Lx = lx; pz.Ly = ly; pz.AL = aL; pz.AR = aR; pz.Bob = bob; pz.Tall = tall; pz.Sit = sit; pz.Cool = glasses;
         pz.Dangle = dangle; pz.Moving = moving && !air; pz.Frame = frame; pz.DanglePhase = (int)(anim * 10); pz.Extra = extra;
