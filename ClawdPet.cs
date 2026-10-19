@@ -104,7 +104,11 @@ static class Cfg
     // Pixel Roomies: three animals, each with its own XP, hunger and colour. One of them is on the screen.
     public static int Animal;                          // 0 = Clawd, 1 = duck, 2 = cat
     public static readonly string[] AnimalKeys = { "clawd", "duck", "cat" };
-    public static readonly string[] AccentVals = { "#F26522", "#D89500", "#9B6FE8" };
+    // theme colour for every animal and colour (menu bar, buttons, switches, speech bubble rim, tray icon)
+    static readonly string[][] AccentTab = {
+        new string[] { "#F26522", "#E0568F", "#4A90D9", "#3FA66B", "#9B6FE8", "#1FB3AD", "#C99A10" },
+        new string[] { "#D89500", "#8E96A3", "#1F7A4D", "#E0568F", "#3C7FD0", "#2E9E63", "#8A5FE0" },
+        new string[] { "#6E7480", "#454550", "#E08A2E", "#9A8F80", "#8A6A55", "#9B6FE8", "#566B8C" } };
     public static int[] XpA = new int[3];
     public static double[] FoodA = { 80, 80, 80 };   // 0 = starving, 100 = full
     public static int[] VarA = new int[3];             // chosen colour of each animal
@@ -116,7 +120,7 @@ static class Cfg
         get { return Swatches(Animal)[VarA[Animal]]; }
         set { int i = Array.IndexOf(Swatches(Animal), value); if (i >= 0) VarA[Animal] = i; }
     }
-    public static string AccentHex(int an) { return AccentVals[an]; }
+    public static string AccentHex(int an) { return AccentTab[an][VarA[an]]; }
 
     // Cosmetics are shared by all animals: head, face, neck and effect can be worn at the same time
     public static string Hat = "none", Face = "none", Neck = "none", Fx = "none";
@@ -389,7 +393,9 @@ class PetPreview : FrameworkElement
 // First-run / settings dialog: pick an animal (first run), then language, size, colour and a few switches.
 class SetupWindow : Window
 {
-    internal static Brush Accent { get { return PetWindow.B(Cfg.AccentHex(Cfg.Animal)); } }
+    // one shared brush: every button, switch and bar that uses it changes colour as soon as Refresh is called
+    internal static readonly SolidColorBrush Accent = new SolidColorBrush(Colors.Orange);
+    internal static void Refresh() { Accent.Color = (Color)ColorConverter.ConvertFromString(Cfg.AccentHex(Cfg.Animal)); }
     static bool noAnim, forceLight;
 
     readonly bool dark;
@@ -411,6 +417,7 @@ class SetupWindow : Window
     {
         this.welcome = welcome;
         variant = Cfg.VarA[Cfg.Animal];
+        Refresh();
         dark = Glass.Dark && !forceLight;
         fg = dark ? Brushes.White : PetWindow.B("#1A1915");
         muted = PetWindow.B(dark ? "#B4FFFFFF" : "#6E6D68");
@@ -518,7 +525,7 @@ class SetupWindow : Window
             card.MouseEnter += delegate { Zoom(card, 1.06, 0.2); card.BorderBrush = accent; pv.Hover = true; };
             card.MouseLeave += delegate { Zoom(card, 1, 0.25); card.BorderBrush = Brushes.Transparent; pv.Hover = false; };
             card.MouseLeftButtonDown += delegate { Zoom(card, 0.95, 0.08); };
-            card.MouseLeftButtonUp += delegate { Cfg.Animal = idx; variant = Cfg.VarA[idx]; BuildSettings(); };
+            card.MouseLeftButtonUp += delegate { Cfg.Animal = idx; variant = Cfg.VarA[idx]; Refresh(); BuildSettings(); };
             cards.Children.Add(card);
         }
         root.Children.Add(cards);
@@ -587,7 +594,7 @@ class SetupWindow : Window
             {
                 b.MouseEnter += delegate { Zoom(b, 1.14, 0.2); };
                 b.MouseLeave += delegate { Zoom(b, 1, 0.25); };
-                b.MouseLeftButtonDown += delegate { variant = cidx; Mark(); Pop(b); Pop(logo); };
+                b.MouseLeftButtonDown += delegate { variant = cidx; Cfg.VarA[Cfg.Animal] = cidx; Refresh(); Mark(); Pop(b); Pop(logo); };
             }
             swatches.Children.Add(b);
         }
@@ -1613,6 +1620,17 @@ class Roomies
         return a;
     }
 
+    // Shading for the duck: light from the top left, shade on the right and at the bottom, glints and a soft ground shadow
+    public static bool Shaded;
+
+    static string Mix(string hex, string with, double t)
+    {
+        Color a = (Color)ColorConverter.ConvertFromString(hex), b = (Color)ColorConverter.ConvertFromString(with);
+        return string.Format("#{0:X2}{1:X2}{2:X2}", (int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
+    }
+    static string Lit(string hex, double t) { return Mix(hex, "#FFFFFF", t); }
+    static string Shd(string hex, double t) { return Mix(hex, "#000000", t); }
+
     public Anchor Duck(Pose p, Var v)
     {
         string body = v.Body, dk = v.Dark, belly = v.Belly, beak = v.Beak, feet = v.Feet ?? "#F28C28", head = v.Head ?? body;
@@ -1621,10 +1639,19 @@ class Roomies
         double bt = -8 - tall + bob + so;
         double bb = p.Sit ? 0 : -2 + bob;
         double armY = -6 + bob + so;
+        string beakD = v.BeakD ?? beak;
+        string bl = null, bs = null, hl = null, hs = null, dl = null, ds = null, fs = null, bkl = null, bks = null;
+        if (Shaded)
+        {
+            bl = Lit(body, 0.38); bs = Shd(body, 0.2); hl = Lit(head, 0.38); hs = Shd(head, 0.2);
+            dl = Lit(dk, 0.3); ds = Shd(dk, 0.25); fs = Shd(feet, 0.25); bkl = Lit(beak, 0.5); bks = Shd(beakD, 0.25);
+            R(-8, -0.7, 16, 1.2, "#30000000"); R(-6, 0.3, 12, 0.6, "#22000000");   // soft shadow on the ground
+        }
         if (ex == "puddle")
         {
             R(-9, -1, 18, 2, "rain"); R(-6, 1, 12, 1, "rain");
             R(-11, -3, 1, 1, "rain"); R(10, -4, 1, 1, "rain"); R(-9, -6, 1, 1, "rain"); R(9, -7, 1, 1, "rain");
+            if (Shaded) { R(-7, -0.6, 8, 0.5, "#80FFFFFF"); R(-9, 0.8, 18, 0.7, "#40000000"); }
         }
         if (!p.Sit)
         {
@@ -1638,11 +1665,13 @@ class Roomies
                 {
                     ln = (i + p.DanglePhase) % 2 == 0 ? 2 : 1.2;
                     R(x + 1, bb, 1, ln, feet); R(x, bb + ln - 0.5, 3, 1, feet);
+                    if (Shaded) R(x, bb + ln + 0.1, 3, 0.4, fs);
                 }
                 else
                 {
                     R(x + 1, bb, 1, Math.Max(0, ln - 1 - raised), feet);
                     R(x, -1 - raised, 3, 1, feet);
+                    if (Shaded) { R(x + 1.6, bb, 0.4, Math.Max(0, ln - 1 - raised), fs); R(x, -0.4 - raised, 3, 0.4, fs); R(x, -1 - raised, 1.2, 0.3, Lit(feet, 0.4)); }
                 }
             }
         }
@@ -1651,21 +1680,54 @@ class Roomies
         R(-6, bt + 1, 12, bb - bt - 2, body);
         R(-5, bb - 1, 10, 1, body);
         R(-3, bt + 3.2, 6, 2.2, belly);
+        if (Shaded)
+        {
+            R(-8, bt, 1, 1, bl);                                  // tail tip
+            R(-6, bt + 1, 1.2, Math.Max(1, (bb - bt) * 0.45), bl);  // light on the left
+            R(4.8, bt + 1.5, 1.2, Math.Max(1, bb - bt - 3), bs);    // shade on the right
+            R(-5, bb - 1, 10, 1, bs);                               // shade underneath
+            R(-6, bb - 2, 1, 1, bs);
+            R(-3, bt + 3.2, 6, 0.5, Lit(belly, 0.5));
+            R(-3, bt + 4.9, 6, 0.5, Shd(belly, 0.12));
+            R(-4, bt, 8, 0.9, bs);                                  // the head casts a shadow on the chest
+        }
         R(-8.5, armY + p.AL, 2.5, 3, dk);
         R(6, armY + p.AR, 2.5, 3, dk);
+        if (Shaded)
+        {
+            R(-8.5, armY + p.AL, 2.5, 0.7, dl); R(-7.6, armY + p.AL + 1.5, 1.4, 0.4, ds); R(-8.5, armY + p.AL + 2.4, 2.5, 0.6, ds);
+            R(6, armY + p.AR, 2.5, 0.7, dl); R(6.1, armY + p.AR + 1.5, 1.4, 0.4, ds); R(6, armY + p.AR + 2.4, 2.5, 0.6, ds);
+        }
         double ht = bt - 6;
         R(-3, ht, 6, 1, head); R(-4, ht + 1, 8, 5, head);
         if (v.Ring) R(-4, ht + 6, 8, 0.8, "white");
+        if (Shaded)
+        {
+            R(-3, ht, 3, 0.8, hl); R(-4, ht + 1, 1.2, 2.6, hl); R(-2.6, ht + 0.8, 1.4, 0.7, hl);   // light from the top left
+            R(2.8, ht + 1, 1.2, 4.6, hs); R(-4, ht + 5.1, 8, 0.9, hs);                              // shade right and under the cheeks
+            R(-3.9, ht + 3.5, 1.3, 1.1, "#50FF7FA8"); R(2.6, ht + 3.5, 1.3, 1.1, "#50FF7FA8");      // blush
+        }
         double ey = ht + 2 + p.Ly;
         Eye(p.Eye, -3 + p.Lx, ey, "ink");
         Eye(p.Eye, 2 + p.Lx, ey, "ink");
+        if (Shaded && (p.Eye == EyeOpen || p.Eye == EyeWide))
+        {
+            R(-2.55 + p.Lx, ey + 0.15, 0.5, 0.5, "white"); R(2.45 + p.Lx, ey + 0.15, 0.5, 0.5, "white");   // glint in the eyes
+        }
         if (ex == "quak")
         {
             R(-2, ht + 3.6, 4, 1, beak); R(-2, ht + 4.6, 4, 1, "redD"); R(-2.5, ht + 5.6, 5, 1.2, beak);
+            if (Shaded) { R(-2, ht + 3.6, 4, 0.35, bkl); R(-2.5, ht + 6.5, 5, 0.3, bks); }
         }
         else
         {
-            R(-2, ht + 3.6, 4, 1, beak); R(-3, ht + 4.6, 6, 1.4, v.BeakD ?? beak);
+            R(-2, ht + 3.6, 4, 1, beak); R(-3, ht + 4.6, 6, 1.4, beakD);
+            if (Shaded)
+            {
+                R(-1.5, ht + 3.6, 3, 0.35, bkl); R(-3, ht + 4.6, 6, 0.4, Shd(beak, 0.12));
+                R(-3, ht + 5.7, 6, 0.3, bks);
+                R(-1, ht + 3.95, 0.5, 0.5, bks); R(0.5, ht + 3.95, 0.5, 0.5, bks);
+            }
         }
         if (p.Cool)
         {
@@ -2538,6 +2600,8 @@ class PetWindow : Window
     void ApplyColor()
     {
         try { bodyB = B(Cfg.Color); } catch { bodyB = body; }
+        SetupWindow.Refresh();
+        if (tray != null) tray.Icon = MakeIcon();
     }
 
     // ---------- Menus ----------
@@ -2765,7 +2829,7 @@ class PetWindow : Window
             delegate(int i) { Cfg.Fx = Cfg.FxVals[i]; }, Cfg.FxLevel, true));
         menu.Items.Add(outfit);
         menu.Items.Add(Choice(T("Farbe", "Color"), Cfg.ColLabels(), Cfg.VarA[Cfg.Animal],
-            delegate(int i) { Cfg.Color = Cfg.ColVals[i]; ApplyColor(); }, Cfg.ColLevel));
+            delegate(int i) { Cfg.VarA[Cfg.Animal] = i; ApplyColor(); }, Cfg.ColLevel));
         menu.Items.Add(Choice(T("Größe", "Size"), Cfg.SizeLabels(), Array.IndexOf(Cfg.SizeVals, Cfg.Size),
             delegate(int i) { Cfg.Size = Cfg.SizeVals[i]; ApplyScale(); }));
         menu.Items.Add(Choice(T("Sprache", "Language"), new string[] { "Deutsch", "English" }, Cfg.Lang == "de" ? 0 : 1,
@@ -2959,7 +3023,7 @@ class PetWindow : Window
         for (int i = 0; i < 4; i++)
             Spawn(P_HEART, -6 + R() * 12, -(topCells + 1) - R() * 3, (R() - 0.5) * 3, -5 - R() * 3, 1.3 + R() * 0.5, null, 0, Pal());
         if (Cfg.Animal == 1 && R() < 0.5) Quak();
-        Say(Cfg.Animal == 2 && R() < 0.4 ? T("Prrr...", "Purr...") : Pick(PetLines), 2);
+        Say(PickPet(), 2);
         if (petXpT <= 0) { petXpT = 8; AddXp(1); }
     }
 
@@ -3307,6 +3371,13 @@ class PetWindow : Window
     double R() { return rnd.NextDouble(); }
     string Pick(string[] a) { return a[rnd.Next(a.Length)]; }
     string Pick(string[][] a) { return Pick(a[Cfg.Lang == "de" ? 0 : 1]); }
+    static readonly string[][] PetLinesDuck = {
+        new string[] { "Quak!", "Das kitzelt!", "Mehr davon!", "Du bist nett!", "Nochmal!", "Hach, schön." },
+        new string[] { "Quack!", "That tickles!", "More, please!", "You're nice!", "Again!", "Ahh, lovely." } };
+    static readonly string[][] PetLinesCat = {
+        new string[] { "Prrr...", "Mehr davon!", "Du bist nett!", "Miau!", "Nochmal!", "Hach, schön." },
+        new string[] { "Purr...", "More, please!", "You're nice!", "Meow!", "Again!", "Ahh, lovely." } };
+    string PickPet() { return Pick(Cfg.Animal == 1 ? PetLinesDuck : Cfg.Animal == 2 ? PetLinesCat : PetLines); }
     static readonly string[][] DuckLines = {
         new string[] { "Quak!", "Quak quak!", "Wer hat Brot?", "Heute schon geplanscht?", "Quak... Pause?" },
         new string[] { "Quack!", "Quack quack!", "Anyone got bread?", "Had a splash today?", "Quack... break time?" } };
@@ -4385,17 +4456,18 @@ class PetWindow : Window
     static readonly Brush bubbleSheen = MakeSheen();
     static readonly Pen bubbleRimDark = MakeRim("#70FFFFFF", "#18FFFFFF"), bubbleRimLight = MakeRim("#FFFFFFFF", "#30000000");
 
-    static readonly Pen[] accentPens = new Pen[3];
+    static readonly Dictionary<string, Pen> accentPens = new Dictionary<string, Pen>();
     static Pen AccentPen()
     {
-        int a = Cfg.Animal;
-        if (accentPens[a] == null)
+        string hex = Cfg.AccentHex(Cfg.Animal);
+        Pen p;
+        if (!accentPens.TryGetValue(hex, out p))
         {
-            Pen p = new Pen(B(Cfg.AccentHex(a)), 1.4);
+            p = new Pen(B(hex), 1.4);
             p.Freeze();
-            accentPens[a] = p;
+            accentPens[hex] = p;
         }
-        return accentPens[a];
+        return p;
     }
 
     static Brush MakeSheen()
@@ -4431,6 +4503,7 @@ class PetWindow : Window
     {
         Cfg.ReadOnly = true;
         Cfg.Animal = Math.Max(0, Array.IndexOf(Cfg.AnimalKeys, animal));
+        if (mode == "compare") Cfg.Size = 6;
         PetWindow w = new PetWindow();
         // each tile: state, colour, head, face, neck, effect
         List<string[]> tiles = new List<string[]>();
@@ -4443,6 +4516,16 @@ class PetWindow : Window
             foreach (string n in Cfg.NeckVals) if (n != "none") tiles.Add(new string[] { "idle", "0", "none", "none", n, "none" });
             foreach (string x in Cfg.FxVals) if (x != "none") tiles.Add(new string[] { "idle", "0", "none", "none", "none", x });
             tiles.Add(new string[] { "idle", "0", "wizard", "nerd", "bowtie", "sparkle" });
+        }
+        else if (mode == "compare")
+        {
+            Cfg.Size = 6;
+            foreach (string stc in new string[] { "idle", "wave", "walk", "cool" })
+                for (int v = 0; v < 3; v++)
+                {
+                    tiles.Add(new string[] { stc, v.ToString(), "none", "none", "none", "none", "0" });
+                    tiles.Add(new string[] { stc, v.ToString(), "none", "none", "none", "none", "1" });
+                }
         }
         else
         {
@@ -4479,6 +4562,7 @@ class PetWindow : Window
                 if (st == "code") { w.typed = true; w.tapT = 0.1; w.Spawn(P_TEXT, -3, -13, 0, 0, 2, "{ }", 2.2, green); w.Spawn(P_TEXT, 5, -16, 0, 0, 2, "</>", 2.2, yellow); }
                 if (st == "dance") { w.Spawn(P_TEXT, -9, -15, 0, 0, 2, "\u266A", 3, pink); w.Spawn(P_TEXT, 8, -17, 0, 0, 2, "\u266B", 3, blue); }
                 if (st == "idle" && mode == "poses") { w.bubbleText = Nm("Hi! I'm Clawd."); w.bubbleT = 3; }
+                Roomies.Shaded = tl.Length > 6 ? tl[6] == "1" : Roomies.Shaded;
                 Cfg.VarA[Cfg.Animal] = int.Parse(tl[1]);
                 Cfg.Hat = tl[2]; Cfg.Face = tl[3]; Cfg.Neck = tl[4]; Cfg.Fx = tl[5];
                 w.ApplyColor();
@@ -4486,6 +4570,9 @@ class PetWindow : Window
                 w.Draw(dc);
                 w.bubbleAge = 1;
                 w.DrawBubble(dc);
+                if (tl.Length > 6)
+                    dc.DrawText(new FormattedText(tl[6] == "1" ? "NEU" : "ALT", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                        new Typeface("Segoe UI"), 22, tl[6] == "1" ? B("#7CE08A") : B("#C9C8C2"), 1.0), new Point(10, 6));
                 dc.Pop();
             }
         }
