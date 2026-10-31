@@ -32,6 +32,12 @@ jobs:
           B=mac/build/ClawdPet.app/Contents/MacOS/ClawdPet
           if [ -x "$B" ]; then
             "$B" --sheet "$PWD/out/poses.png" 2>&1 | tee -a out/test.log || true
+            for a in clawd duck cat; do
+              "$B" --sheet "$PWD/out/cos-$a.png" $a cos 2>&1 | tee -a out/test.log || true
+              "$B" --sheet "$PWD/out/colors-$a.png" $a colors 2>&1 | tee -a out/test.log || true
+            done
+            "$B" --sheet "$PWD/out/poses-duck.png" duck 2>&1 | tee -a out/test.log || true
+            "$B" --sheet "$PWD/out/poses-cat.png" cat 2>&1 | tee -a out/test.log || true
             cp mac/build/icon.png out/ || true
           fi
 
@@ -79,6 +85,49 @@ jobs:
           if [ -s out/selftest-raw.mov ]; then
             avconvert --source out/selftest-raw.mov --preset Preset1280x720 --output out/selftest.mp4 >> out/video.log 2>&1 && rm out/selftest-raw.mov || true
           fi
+
+      - name: Pixel Roomies on the desktop
+        if: always()
+        run: |
+          APP=mac/build/ClawdPet.app
+          B="$APP/Contents/MacOS/ClawdPet"
+          [ -x "$B" ] || exit 0
+          # welcome window: the animal cards, then the settings once a card was picked
+          "$B" --setup --setup-pick duck > out/run-setup.log 2>&1 &
+          sleep 2
+          screencapture -x out/roomies-choose.png || true
+          sleep 3
+          screencapture -x out/roomies-settings.png || true
+          pkill -x ClawdPet || true
+          sleep 1
+          # the duck brings a quote window
+          CLAWD_ACTS=quote CLAWD_ACT_SECS=60 "$B" --log "$PWD/out/duck-quote.log" --animal duck > out/run-duck1.log 2>&1 &
+          for i in 1 2 3 4 5 6; do
+            sleep 6
+            screencapture -x -t jpg "out/duck-quote-$i.jpg" || true
+          done
+          pkill -x ClawdPet || true
+          sleep 1
+          # the duck roams the screen and leaves footprints
+          CLAWD_ACTS=walk,quak,puddle,run,chase CLAWD_ACT_SECS=7 "$B" --log "$PWD/out/duck.log" --animal duck > out/run-duck2.log 2>&1 &
+          sleep 3
+          for i in 1 2 3 4 5; do
+            sleep 6
+            screencapture -x -t jpg "out/duck-$i.jpg" || true
+            sleep 1
+          done
+          pkill -x ClawdPet || true
+          sleep 1
+          # the cat: walks, purrs, washes, scratches, hunts, sleeps as a loaf
+          CLAWD_ACTS=walk,purr,groom,scratch,chase,sleep CLAWD_ACT_SECS=11 "$B" --log "$PWD/out/cat.log" --animal cat > out/run-cat.log 2>&1 &
+          sleep 3
+          for i in 1 2 3 4 5 6; do
+            sleep 9
+            screencapture -x -t jpg "out/cat-$i.jpg" || true
+            sleep 2
+          done
+          pkill -x ClawdPet || true
+          sleep 1
 
       - name: Promo recording
         if: always()
