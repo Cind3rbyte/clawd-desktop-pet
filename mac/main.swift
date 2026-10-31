@@ -1405,7 +1405,7 @@ final class Pet: NSView {
     override func mouseDown(with e: NSEvent) {
         gotRealMouse = true
         if e.clickCount == 2 {
-            if !air && y >= ground - 1 { set(Cfg.level >= Pet.actLevel("flip") || demo ? "flip" : "jump") }
+            if !air && (y >= ground - 1 || free()) { set(Cfg.level >= Pet.actLevel("flip") || demo ? "flip" : "jump") }
             return
         }
         press()

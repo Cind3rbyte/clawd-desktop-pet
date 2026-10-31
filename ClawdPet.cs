@@ -2983,7 +2983,7 @@ class PetWindow : Window
         ReadCursor();
         if (e.ClickCount == 2)
         {
-            if (!air && y >= Ground - 1) Set(Cfg.Level >= ActLevel("flip") || demo ? "flip" : "jump");
+            if (!air && (y >= Ground - 1 || Free())) Set(Cfg.Level >= ActLevel("flip") || demo ? "flip" : "jump");
             return;
         }
         pressed = true;
