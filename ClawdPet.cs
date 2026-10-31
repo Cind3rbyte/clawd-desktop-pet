@@ -1621,7 +1621,7 @@ class Roomies
     }
 
     // Shading for the duck: light from the top left, shade on the right and at the bottom, glints and a soft ground shadow
-    public static bool Shaded;
+    public static bool Shaded = true;
 
     static string Mix(string hex, string with, double t)
     {
