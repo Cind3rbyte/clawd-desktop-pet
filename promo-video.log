@@ -1,0 +1,101 @@
+wallpaper: /System/Library/Desktop Pictures/Sonoma.heic
+wallpaper set: /System/Library/Desktop Pictures/Sonoma.heic
+
+IOServiceMatchingfailed for: AppleM2ScalerParavirtDriver
+cursor option: '-C'
+IOServiceMatchingfailed for: AppleM2ScalerParavirtDriver
+total 133832
+drwxr-xr-x  92 runner  staff      2944 Oct 31 21:10 .
+drwxr-xr-x  14 runner  staff       448 Oct 31 21:03 ..
+-rw-r--r--   1 runner  staff        78 Oct 31 21:04 build.log
+-rw-r--r--@  1 runner  staff    249331 Oct 31 21:07 cat-1.jpg
+-rw-r--r--@  1 runner  staff    249147 Oct 31 21:07 cat-2.jpg
+-rw-r--r--@  1 runner  staff    249075 Oct 31 21:08 cat-3.jpg
+-rw-r--r--@  1 runner  staff    249900 Oct 31 21:08 cat-4.jpg
+-rw-r--r--@  1 runner  staff    250004 Oct 31 21:08 cat-5.jpg
+-rw-r--r--@  1 runner  staff    247393 Oct 31 21:08 cat-6.jpg
+-rw-r--r--@  1 runner  staff      5983 Oct 31 21:08 cat.log
+-rw-r--r--   1 runner  staff     13208 Oct 31 21:04 colors-cat.png
+-rw-r--r--   1 runner  staff     11258 Oct 31 21:04 colors-clawd.png
+-rw-r--r--   1 runner  staff     14792 Oct 31 21:04 colors-duck.png
+-rw-r--r--   1 runner  staff        41 Oct 31 21:03 commit.txt
+-rw-r--r--   1 runner  staff     43763 Oct 31 21:04 cos-cat.png
+-rw-r--r--   1 runner  staff     38403 Oct 31 21:04 cos-clawd.png
+-rw-r--r--   1 runner  staff     46436 Oct 31 21:04 cos-duck.png
+-rw-r--r--@  1 runner  staff    256959 Oct 31 21:07 duck-1.jpg
+-rw-r--r--@  1 runner  staff    256397 Oct 31 21:07 duck-2.jpg
+-rw-r--r--@  1 runner  staff    253379 Oct 31 21:07 duck-3.jpg
+-rw-r--r--@  1 runner  staff    252302 Oct 31 21:07 duck-4.jpg
+-rw-r--r--@  1 runner  staff    258057 Oct 31 21:07 duck-5.jpg
+-rw-r--r--@  1 runner  staff    262942 Oct 31 21:06 duck-quote-1.jpg
+-rw-r--r--@  1 runner  staff    287929 Oct 31 21:06 duck-quote-2.jpg
+-rw-r--r--@  1 runner  staff    276663 Oct 31 21:06 duck-quote-3.jpg
+-rw-r--r--@  1 runner  staff    260955 Oct 31 21:06 duck-quote-4.jpg
+-rw-r--r--@  1 runner  staff    249754 Oct 31 21:06 duck-quote-5.jpg
+-rw-r--r--@  1 runner  staff    249815 Oct 31 21:06 duck-quote-6.jpg
+-rw-r--r--@  1 runner  staff      3031 Oct 31 21:06 duck-quote.log
+-rw-r--r--@  1 runner  staff      3320 Oct 31 21:07 duck.log
+-rw-r--r--   1 runner  staff     31770 Oct 31 21:04 icon.png
+-rw-r--r--@  1 runner  staff      3794 Oct 31 21:05 pet.log
+-rw-r--r--   1 runner  staff     37673 Oct 31 21:04 poses-cat.png
+-rw-r--r--   1 runner  staff     41505 Oct 31 21:04 poses-duck.png
+-rw-r--r--   1 runner  staff     27498 Oct 31 21:04 poses.png
+-rw-r--r--@  1 runner  staff    531367 Oct 31 21:08 pr-01.jpg
+-rw-r--r--@  1 runner  staff    580690 Oct 31 21:09 pr-02.jpg
+-rw-r--r--@  1 runner  staff    575033 Oct 31 21:09 pr-03.jpg
+-rw-r--r--@  1 runner  staff    573012 Oct 31 21:09 pr-04.jpg
+-rw-r--r--@  1 runner  staff    577154 Oct 31 21:09 pr-05.jpg
+-rw-r--r--@  1 runner  staff    575884 Oct 31 21:09 pr-06.jpg
+-rw-r--r--@  1 runner  staff    572544 Oct 31 21:09 pr-07.jpg
+-rw-r--r--@  1 runner  staff    579779 Oct 31 21:09 pr-08.jpg
+-rw-r--r--@  1 runner  staff    573709 Oct 31 21:09 pr-09.jpg
+-rw-r--r--@  1 runner  staff    552494 Oct 31 21:09 pr-10.jpg
+-rw-r--r--@  1 runner  staff    575148 Oct 31 21:09 pr-11.jpg
+-rw-r--r--@  1 runner  staff    577221 Oct 31 21:09 pr-12.jpg
+-rw-r--r--@  1 runner  staff    575310 Oct 31 21:09 pr-13.jpg
+-rw-r--r--@  1 runner  staff    579038 Oct 31 21:09 pr-14.jpg
+-rw-r--r--@  1 runner  staff    573009 Oct 31 21:09 pr-15.jpg
+-rw-r--r--@  1 runner  staff    582309 Oct 31 21:10 pr-16.jpg
+-rw-r--r--@  1 runner  staff    574294 Oct 31 21:10 pr-17.jpg
+-rw-r--r--@  1 runner  staff    576413 Oct 31 21:10 pr-18.jpg
+-rw-r--r--@  1 runner  staff    574298 Oct 31 21:10 pr-19.jpg
+-rw-r--r--   1 runner  staff  39196739 Oct 31 21:10 promo-raw.mov
+-rw-r--r--   1 runner  staff       251 Oct 31 21:08 promo-video.log
+-rw-r--r--@  1 runner  staff      6484 Oct 31 21:10 promo.log
+-rw-r--r--@  1 runner  staff    201311 Oct 31 21:06 roomies-choose.png
+-rw-r--r--@  1 runner  staff    211691 Oct 31 21:06 roomies-settings.png
+-rw-r--r--   1 runner  staff         0 Oct 31 21:07 run-cat.log
+-rw-r--r--   1 runner  staff         0 Oct 31 21:06 run-duck1.log
+-rw-r--r--   1 runner  staff         0 Oct 31 21:06 run-duck2.log
+-rw-r--r--   1 runner  staff         0 Oct 31 21:06 run-setup.log
+-rw-r--r--   1 runner  staff         0 Oct 31 21:04 run.log
+-rw-r--r--   1 runner  staff         0 Oct 31 21:05 run2.log
+-rw-r--r--   1 runner  staff         0 Oct 31 21:08 run3.log
+-rw-r--r--@  1 runner  staff      4317 Oct 31 21:06 selftest.log
+-rw-r--r--   1 runner  staff   7998564 Oct 31 21:06 selftest.mp4
+-rw-r--r--@  1 runner  staff    102941 Oct 31 21:04 shot-1-setup.png
+-rw-r--r--@  1 runner  staff    158732 Oct 31 21:04 shot-2-outfit.png
+-rw-r--r--@  1 runner  staff    159488 Oct 31 21:04 shot-3-hungry.png
+-rw-r--r--@  1 runner  staff    168814 Oct 31 21:04 shot-4-levelup.png
+-rw-r--r--@  1 runner  staff    159619 Oct 31 21:05 shot-5-dance.png
+-rw-r--r--@  1 runner  staff    159103 Oct 31 21:05 shot-6-window.png
+-rw-r--r--@  1 runner  staff    265352 Oct 31 21:05 st-01.jpg
+-rw-r--r--@  1 runner  staff    258158 Oct 31 21:05 st-02.jpg
+-rw-r--r--@  1 runner  staff    254084 Oct 31 21:05 st-03.jpg
+-rw-r--r--@  1 runner  staff    261532 Oct 31 21:05 st-04.jpg
+-rw-r--r--@  1 runner  staff    253065 Oct 31 21:05 st-05.jpg
+-rw-r--r--@  1 runner  staff    261560 Oct 31 21:05 st-06.jpg
+-rw-r--r--@  1 runner  staff    252971 Oct 31 21:05 st-07.jpg
+-rw-r--r--@  1 runner  staff    264091 Oct 31 21:05 st-08.jpg
+-rw-r--r--@  1 runner  staff    264660 Oct 31 21:05 st-09.jpg
+-rw-r--r--@  1 runner  staff    251224 Oct 31 21:05 st-10.jpg
+-rw-r--r--@  1 runner  staff    258787 Oct 31 21:05 st-11.jpg
+-rw-r--r--@  1 runner  staff    250209 Oct 31 21:06 st-12.jpg
+-rw-r--r--@  1 runner  staff    252506 Oct 31 21:06 st-13.jpg
+-rw-r--r--@  1 runner  staff    253854 Oct 31 21:06 st-14.jpg
+-rw-r--r--   1 runner  staff        66 Oct 31 21:04 system.txt
+-rw-r--r--   1 runner  staff         0 Oct 31 21:04 test.log
+-rw-r--r--   1 runner  staff      2739 Oct 31 21:06 video.log
+-rw-r--r--   1 runner  staff      5754 Oct 31 21:08 wallpapers.txt
+avconvert completed with error:0.
+

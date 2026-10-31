@@ -1,0 +1,58 @@
+21:05:22.0 animal=0 hat=none fall x=512 y=165 air=true windows=0 level=26 food=80
+21:05:23.0 animal=0 hat=none fall x=512 y=670 air=true windows=1 level=26 food=79
+21:05:23.0 landed on ground at y=706
+21:05:24.1 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=26 food=79
+21:05:24.4 selftest: sending a real mouse click to his body
+21:05:25.1 animal=0 hat=none pet x=512 y=706 air=false windows=1 level=26 food=79
+21:05:25.6 selftest: the real click arrived - petting works with the mouse
+21:05:26.1 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=26 food=79
+21:05:27.2 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=26 food=79
+21:05:28.2 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=26 food=79
+21:05:28.2 selftest: double-click -> flip
+21:05:28.9 landed on ground at y=706
+21:05:29.3 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=26 food=79
+21:05:29.4 selftest: picking him up and throwing him
+21:05:30.3 animal=0 hat=none drag x=715 y=441 air=false windows=1 level=26 food=79
+21:05:30.6 selftest: let go - thrown with vx=732 vy=-374
+21:05:31.3 animal=0 hat=none fall x=632 y=667 air=true windows=1 level=26 food=79
+21:05:31.6 landed on ground at y=706
+21:05:32.3 animal=0 hat=none idle x=531 y=706 air=false windows=1 level=26 food=79
+21:05:32.4 selftest: opening the right-click menu
+21:05:33.4 animal=0 hat=none idle x=531 y=706 air=false windows=1 level=26 food=79
+21:05:34.5 animal=0 hat=none idle x=531 y=706 air=false windows=1 level=26 food=79
+21:05:35.5 animal=0 hat=none idle x=531 y=706 air=false windows=1 level=26 food=79
+21:05:35.7 selftest: the menu was open and closed again
+21:05:36.5 animal=0 hat=none idle x=531 y=706 air=false windows=1 level=26 food=79
+21:05:37.6 animal=0 hat=none idle x=531 y=706 air=false windows=1 level=26 food=79
+21:05:38.6 animal=0 hat=none idle x=531 y=706 air=false windows=1 level=26 food=79
+21:05:39.6 animal=0 hat=none idle x=531 y=706 air=false windows=1 level=26 food=79
+21:05:39.9 selftest: typing -> he types along
+21:05:40.7 animal=0 hat=none code x=531 y=706 air=false windows=1 level=26 food=79
+21:05:41.7 animal=0 hat=none code x=531 y=706 air=false windows=1 level=26 food=79
+21:05:42.7 animal=0 hat=none code x=531 y=706 air=false windows=1 level=26 food=79
+21:05:43.8 animal=0 hat=none code x=531 y=706 air=false windows=1 level=26 food=79
+21:05:44.8 animal=0 hat=none code x=531 y=706 air=false windows=1 level=26 food=79
+21:05:45.9 animal=0 hat=none code x=531 y=706 air=false windows=1 level=26 food=79
+21:05:46.4 selftest: crown on, dancing
+21:05:46.9 animal=0 hat=crown dance x=531 y=706 air=false windows=1 level=26 food=79
+21:05:47.9 animal=0 hat=crown dance x=531 y=706 air=false windows=1 level=26 food=79
+21:05:49.0 animal=0 hat=crown dance x=531 y=706 air=false windows=1 level=26 food=79
+21:05:50.0 animal=0 hat=crown dance x=531 y=706 air=false windows=1 level=26 food=79
+21:05:51.0 animal=0 hat=crown dance x=531 y=706 air=false windows=1 level=26 food=79
+21:05:51.4 selftest: walking
+21:05:52.0 animal=0 hat=cap walk x=600 y=706 air=false windows=1 level=26 food=79
+21:05:53.0 animal=0 hat=cap walk x=716 y=706 air=false windows=1 level=26 food=79
+21:05:54.0 animal=0 hat=cap idle x=809 y=706 air=false windows=1 level=26 food=79
+21:05:55.0 animal=0 hat=cap idle x=809 y=706 air=false windows=1 level=26 food=79
+21:05:56.1 animal=0 hat=cap idle x=809 y=706 air=false windows=1 level=26 food=79
+21:05:57.2 animal=0 hat=phones wave x=809 y=706 air=false windows=1 level=26 food=79
+21:05:58.2 animal=0 hat=phones wave x=809 y=706 air=false windows=1 level=26 food=79
+21:05:59.2 animal=0 hat=phones wave x=809 y=706 air=false windows=1 level=26 food=79
+21:05:59.5 selftest: done
+21:06:00.2 animal=0 hat=phones idle x=809 y=706 air=false windows=1 level=26 food=79
+21:06:01.2 animal=0 hat=phones idle x=809 y=706 air=false windows=1 level=26 food=79
+21:06:02.2 animal=0 hat=phones idle x=809 y=706 air=false windows=1 level=26 food=79
+21:06:03.3 animal=0 hat=phones idle x=809 y=706 air=false windows=1 level=26 food=79
+21:06:04.3 animal=0 hat=phones idle x=809 y=706 air=false windows=1 level=26 food=79
+21:06:05.4 animal=0 hat=phones idle x=809 y=706 air=false windows=1 level=26 food=79
+21:06:06.4 animal=0 hat=phones idle x=809 y=706 air=false windows=1 level=26 food=79

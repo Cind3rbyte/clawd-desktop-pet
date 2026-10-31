@@ -1,0 +1,80 @@
+21:07:34.0 animal=2 hat=none fall x=512 y=95 air=true windows=0 level=1 food=80
+21:07:35.1 animal=2 hat=none fall x=512 y=650 air=true windows=1 level=1 food=79
+21:07:35.8 landed on ground at y=706
+21:07:36.0 activity walk
+21:07:36.1 animal=2 hat=none walk x=516 y=706 air=false windows=1 level=1 food=79
+21:07:37.1 animal=2 hat=none walk x=580 y=706 air=false windows=1 level=1 food=79
+21:07:38.2 animal=2 hat=none walk x=639 y=706 air=false windows=1 level=1 food=79
+21:07:39.2 animal=2 hat=none walk x=699 y=706 air=false windows=1 level=1 food=79
+21:07:40.2 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:41.2 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:42.2 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:43.2 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:44.3 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:45.3 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:46.3 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:47.0 activity purr
+21:07:47.4 animal=2 hat=none purr x=740 y=706 air=false windows=1 level=1 food=79
+21:07:48.4 animal=2 hat=none purr x=740 y=706 air=false windows=1 level=1 food=79
+21:07:49.4 animal=2 hat=none purr x=740 y=706 air=false windows=1 level=1 food=79
+21:07:50.5 animal=2 hat=none purr x=740 y=706 air=false windows=1 level=1 food=79
+21:07:51.5 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:52.5 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:53.5 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:54.6 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:55.6 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:56.6 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:57.7 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:07:58.0 activity groom
+21:07:58.7 animal=2 hat=none groom x=740 y=706 air=false windows=1 level=1 food=79
+21:07:59.7 animal=2 hat=none groom x=740 y=706 air=false windows=1 level=1 food=79
+21:08:00.7 animal=2 hat=none groom x=740 y=706 air=false windows=1 level=1 food=79
+21:08:01.8 animal=2 hat=none groom x=740 y=706 air=false windows=1 level=1 food=79
+21:08:02.8 animal=2 hat=none groom x=740 y=706 air=false windows=1 level=1 food=79
+21:08:03.8 animal=2 hat=none groom x=740 y=706 air=false windows=1 level=1 food=79
+21:08:04.9 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:08:05.9 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:08:06.9 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:08:07.9 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:08:08.9 animal=2 hat=none idle x=740 y=706 air=false windows=1 level=1 food=79
+21:08:09.0 activity scratch
+21:08:09.9 animal=2 hat=none scratch x=832 y=706 air=false windows=1 level=1 food=79
+21:08:10.9 animal=2 hat=none scratch x=934 y=706 air=false windows=1 level=1 food=79
+21:08:12.0 animal=2 hat=none scratch x=974 y=706 air=false windows=1 level=1 food=79
+21:08:13.0 animal=2 hat=none scratch x=974 y=706 air=false windows=1 level=1 food=79
+21:08:14.0 animal=2 hat=none scratch x=974 y=706 air=false windows=1 level=1 food=79
+21:08:15.1 animal=2 hat=none scratch x=974 y=706 air=false windows=1 level=1 food=79
+21:08:16.1 animal=2 hat=none scratch x=974 y=706 air=false windows=1 level=1 food=79
+21:08:17.2 animal=2 hat=none idle x=974 y=706 air=false windows=1 level=1 food=79
+21:08:18.2 animal=2 hat=none idle x=974 y=706 air=false windows=1 level=1 food=79
+21:08:19.2 animal=2 hat=none idle x=974 y=706 air=false windows=1 level=1 food=79
+21:08:20.0 activity chase
+21:08:20.2 animal=2 hat=none chase x=951 y=706 air=false windows=1 level=1 food=79
+21:08:21.3 animal=2 hat=none chase x=813 y=706 air=false windows=1 level=1 food=79
+21:08:22.3 animal=2 hat=none chase x=684 y=706 air=false windows=1 level=1 food=79
+21:08:23.4 animal=2 hat=none chase x=568 y=686 air=true windows=1 level=1 food=79
+21:08:23.6 landed on ground at y=706
+21:08:24.4 animal=2 hat=none chase x=568 y=706 air=false windows=1 level=1 food=79
+21:08:25.3 landed on ground at y=706
+21:08:25.4 animal=2 hat=none chase x=568 y=706 air=false windows=1 level=1 food=79
+21:08:26.4 animal=2 hat=none chase x=568 y=706 air=false windows=1 level=1 food=79
+21:08:26.9 landed on ground at y=706
+21:08:27.5 animal=2 hat=none chase x=568 y=706 air=false windows=1 level=1 food=79
+21:08:28.5 animal=2 hat=none chase x=568 y=697 air=true windows=1 level=1 food=79
+21:08:28.5 landed on ground at y=706
+21:08:29.5 animal=2 hat=none idle x=568 y=706 air=false windows=1 level=1 food=79
+21:08:30.5 animal=2 hat=none idle x=568 y=706 air=false windows=1 level=1 food=79
+21:08:31.0 activity sleep
+21:08:31.6 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:32.7 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:33.7 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:34.7 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:35.8 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:36.9 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:37.9 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:38.9 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:39.9 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:41.0 animal=2 hat=none sleep x=568 y=706 air=false windows=1 level=1 food=79
+21:08:42.0 activity walk
+21:08:42.1 animal=2 hat=none walk x=566 y=706 air=false windows=1 level=1 food=79
+21:08:43.1 animal=2 hat=none idle x=505 y=706 air=false windows=1 level=1 food=79

@@ -1,0 +1,46 @@
+IOServiceMatchingfailed for: AppleM2ScalerParavirtDriver
+total 26128
+drwxr-xr-x  42 runner  staff     1344 Oct 31 21:06 .
+drwxr-xr-x  14 runner  staff      448 Oct 31 21:03 ..
+-rw-r--r--   1 runner  staff       78 Oct 31 21:04 build.log
+-rw-r--r--   1 runner  staff    13208 Oct 31 21:04 colors-cat.png
+-rw-r--r--   1 runner  staff    11258 Oct 31 21:04 colors-clawd.png
+-rw-r--r--   1 runner  staff    14792 Oct 31 21:04 colors-duck.png
+-rw-r--r--   1 runner  staff       41 Oct 31 21:03 commit.txt
+-rw-r--r--   1 runner  staff    43763 Oct 31 21:04 cos-cat.png
+-rw-r--r--   1 runner  staff    38403 Oct 31 21:04 cos-clawd.png
+-rw-r--r--   1 runner  staff    46436 Oct 31 21:04 cos-duck.png
+-rw-r--r--   1 runner  staff    31770 Oct 31 21:04 icon.png
+-rw-r--r--@  1 runner  staff     3794 Oct 31 21:05 pet.log
+-rw-r--r--   1 runner  staff    37673 Oct 31 21:04 poses-cat.png
+-rw-r--r--   1 runner  staff    41505 Oct 31 21:04 poses-duck.png
+-rw-r--r--   1 runner  staff    27498 Oct 31 21:04 poses.png
+-rw-r--r--   1 runner  staff        0 Oct 31 21:04 run.log
+-rw-r--r--   1 runner  staff        0 Oct 31 21:05 run2.log
+-rw-r--r--   1 runner  staff  8383054 Oct 31 21:06 selftest-raw.mov
+-rw-r--r--@  1 runner  staff     4317 Oct 31 21:06 selftest.log
+-rw-r--r--@  1 runner  staff   102941 Oct 31 21:04 shot-1-setup.png
+-rw-r--r--@  1 runner  staff   158732 Oct 31 21:04 shot-2-outfit.png
+-rw-r--r--@  1 runner  staff   159488 Oct 31 21:04 shot-3-hungry.png
+-rw-r--r--@  1 runner  staff   168814 Oct 31 21:04 shot-4-levelup.png
+-rw-r--r--@  1 runner  staff   159619 Oct 31 21:05 shot-5-dance.png
+-rw-r--r--@  1 runner  staff   159103 Oct 31 21:05 shot-6-window.png
+-rw-r--r--@  1 runner  staff   265352 Oct 31 21:05 st-01.jpg
+-rw-r--r--@  1 runner  staff   258158 Oct 31 21:05 st-02.jpg
+-rw-r--r--@  1 runner  staff   254084 Oct 31 21:05 st-03.jpg
+-rw-r--r--@  1 runner  staff   261532 Oct 31 21:05 st-04.jpg
+-rw-r--r--@  1 runner  staff   253065 Oct 31 21:05 st-05.jpg
+-rw-r--r--@  1 runner  staff   261560 Oct 31 21:05 st-06.jpg
+-rw-r--r--@  1 runner  staff   252971 Oct 31 21:05 st-07.jpg
+-rw-r--r--@  1 runner  staff   264091 Oct 31 21:05 st-08.jpg
+-rw-r--r--@  1 runner  staff   264660 Oct 31 21:05 st-09.jpg
+-rw-r--r--@  1 runner  staff   251224 Oct 31 21:05 st-10.jpg
+-rw-r--r--@  1 runner  staff   258787 Oct 31 21:05 st-11.jpg
+-rw-r--r--@  1 runner  staff   250209 Oct 31 21:06 st-12.jpg
+-rw-r--r--@  1 runner  staff   252506 Oct 31 21:06 st-13.jpg
+-rw-r--r--@  1 runner  staff   253854 Oct 31 21:06 st-14.jpg
+-rw-r--r--   1 runner  staff       66 Oct 31 21:04 system.txt
+-rw-r--r--   1 runner  staff        0 Oct 31 21:04 test.log
+-rw-r--r--   1 runner  staff       57 Oct 31 21:05 video.log
+avconvert completed with error:0.
+

@@ -1,0 +1,95 @@
+21:09:01.5 animal=0 hat=none fall x=512 y=165 air=true windows=0 level=5 food=40
+21:09:02.5 animal=0 hat=none fall x=512 y=664 air=true windows=1 level=5 food=39
+21:09:02.8 landed on ground at y=706
+21:09:03.6 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:03.9 promo: scene 0
+21:09:04.6 animal=0 hat=none wave x=512 y=706 air=false windows=1 level=5 food=39
+21:09:05.6 animal=0 hat=none wave x=512 y=706 air=false windows=1 level=5 food=39
+21:09:06.6 animal=0 hat=none wave x=512 y=706 air=false windows=1 level=5 food=39
+21:09:07.1 promo: scene 1
+21:09:07.7 animal=0 hat=none walk x=443 y=706 air=false windows=1 level=5 food=39
+21:09:08.7 animal=0 hat=none walk x=321 y=706 air=false windows=1 level=5 food=39
+21:09:09.7 animal=0 hat=none idle x=225 y=706 air=false windows=1 level=5 food=39
+21:09:10.3 promo: scene 2
+21:09:10.7 animal=0 hat=none walk x=279 y=706 air=false windows=1 level=5 food=39
+21:09:11.7 animal=0 hat=none walk x=404 y=706 air=false windows=1 level=5 food=39
+21:09:12.8 animal=0 hat=none walk x=525 y=706 air=false windows=1 level=5 food=39
+21:09:13.8 animal=0 hat=none idle x=614 y=706 air=false windows=1 level=5 food=39
+21:09:14.5 promo: scene 3
+21:09:14.8 animal=0 hat=none idle x=614 y=706 air=false windows=1 level=5 food=39
+21:09:15.9 animal=0 hat=none idle x=614 y=706 air=false windows=1 level=5 food=39
+21:09:16.1 promo: scene 4
+21:09:16.9 animal=0 hat=none walk x=708 y=706 air=false windows=1 level=5 food=39
+21:09:17.9 animal=0 hat=none idle x=832 y=706 air=false windows=1 level=5 food=39
+21:09:18.5 promo: scene 5
+21:09:18.9 animal=0 hat=none idle x=832 y=706 air=false windows=1 level=5 food=39
+21:09:20.0 animal=0 hat=none idle x=832 y=706 air=false windows=1 level=5 food=39
+21:09:21.0 animal=0 hat=none idle x=832 y=706 air=false windows=1 level=5 food=39
+21:09:21.3 promo: scene 6
+21:09:22.0 animal=0 hat=none walk x=754 y=706 air=false windows=1 level=5 food=39
+21:09:23.1 animal=0 hat=none walk x=629 y=706 air=false windows=1 level=5 food=39
+21:09:24.1 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:24.8 promo: scene 7
+21:09:25.2 animal=0 hat=none code x=512 y=706 air=false windows=1 level=5 food=39
+21:09:26.2 animal=0 hat=none code x=512 y=706 air=false windows=1 level=5 food=39
+21:09:27.2 animal=0 hat=none code x=512 y=706 air=false windows=1 level=5 food=39
+21:09:28.2 animal=0 hat=none code x=512 y=706 air=false windows=1 level=5 food=39
+21:09:29.2 animal=0 hat=none code x=512 y=706 air=false windows=1 level=5 food=39
+21:09:30.2 animal=0 hat=none code x=512 y=706 air=false windows=1 level=5 food=39
+21:09:31.3 animal=0 hat=none code x=512 y=706 air=false windows=1 level=5 food=39
+21:09:32.0 promo: scene 8
+21:09:32.3 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:33.3 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:34.4 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:35.4 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:36.5 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:37.5 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:38.5 promo: the menu was open and closed again
+21:09:38.5 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:39.6 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:40.5 promo: scene 9
+21:09:40.6 animal=0 hat=cap idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:41.6 animal=0 hat=cap idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:41.7 promo: scene 10
+21:09:42.7 animal=0 hat=party idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:42.9 promo: scene 11
+21:09:43.7 animal=0 hat=phones idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:44.0 promo: scene 12
+21:09:44.7 animal=0 hat=tophat idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:45.2 promo: scene 13
+21:09:45.8 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=5 food=39
+21:09:46.3 promo: scene 14
+21:09:46.8 animal=0 hat=none eat x=512 y=706 air=false windows=1 level=5 food=74
+21:09:47.9 animal=0 hat=none eat x=512 y=706 air=false windows=1 level=5 food=74
+21:09:48.9 animal=0 hat=none eat x=512 y=706 air=false windows=1 level=5 food=74
+21:09:49.9 animal=0 hat=none eat x=512 y=706 air=false windows=1 level=5 food=74
+21:09:50.6 promo: scene 15
+21:09:51.0 animal=0 hat=none jump x=512 y=620 air=true windows=1 level=6 food=74
+21:09:51.1 landed on ground at y=706
+21:09:51.7 landed on ground at y=706
+21:09:52.0 animal=0 hat=none jump x=512 y=605 air=true windows=1 level=6 food=74
+21:09:52.3 landed on ground at y=706
+21:09:53.0 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=6 food=74
+21:09:54.1 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=6 food=74
+21:09:55.1 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=6 food=74
+21:09:56.1 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=6 food=74
+21:09:56.7 promo: scene 16
+21:09:57.1 animal=0 hat=crown dance x=512 y=706 air=false windows=1 level=6 food=74
+21:09:58.1 animal=0 hat=crown dance x=512 y=706 air=false windows=1 level=6 food=74
+21:09:59.2 animal=0 hat=crown dance x=512 y=706 air=false windows=1 level=6 food=74
+21:10:00.2 animal=0 hat=crown dance x=512 y=706 air=false windows=1 level=6 food=74
+21:10:01.2 animal=0 hat=crown dance x=512 y=706 air=false windows=1 level=6 food=74
+21:10:01.7 promo: scene 17
+21:10:02.3 animal=0 hat=crown wave x=512 y=706 air=false windows=1 level=6 food=74
+21:10:03.3 animal=0 hat=crown wave x=512 y=706 air=false windows=1 level=6 food=74
+21:10:04.3 animal=0 hat=crown wave x=512 y=706 air=false windows=1 level=6 food=74
+21:10:05.3 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=6 food=74
+21:10:05.7 promo: scene 18
+21:10:05.7 promo: done
+21:10:06.3 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=6 food=74
+21:10:07.4 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=6 food=74
+21:10:08.4 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=6 food=74
+21:10:09.4 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=6 food=74
+21:10:10.4 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=6 food=74
+21:10:11.4 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=6 food=74
+21:10:12.5 animal=0 hat=crown idle x=512 y=706 air=false windows=1 level=6 food=74

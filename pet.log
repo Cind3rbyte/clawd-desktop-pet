@@ -1,0 +1,46 @@
+21:04:38.0 animal=0 hat=none fall x=512 y=95 air=true windows=0 level=1 food=80
+21:04:39.1 animal=0 hat=none fall x=512 y=679 air=true windows=1 level=1 food=79
+21:04:40.0 landed on ground at y=706
+21:04:40.2 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:04:41.2 demo0 animal=0 hat=none wave x=512 y=706 air=false windows=1 level=1 food=79
+21:04:42.3 demo1 animal=0 hat=cap wave x=512 y=706 air=false windows=1 level=1 food=79
+21:04:43.3 demo2 animal=0 hat=party wave x=512 y=706 air=false windows=1 level=1 food=79
+21:04:44.3 demo2 animal=0 hat=party wave x=512 y=706 air=false windows=1 level=1 food=79
+21:04:45.3 demo3 animal=0 hat=phones wave x=512 y=706 air=false windows=1 level=1 food=79
+21:04:46.4 demo4 animal=0 hat=tophat wave x=512 y=706 air=false windows=1 level=1 food=79
+21:04:47.4 demo4 animal=0 hat=tophat wave x=512 y=706 air=false windows=1 level=1 food=79
+21:04:48.5 demo5 animal=0 hat=crown wave x=512 y=706 air=false windows=1 level=1 food=79
+21:04:49.5 demo6 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=12
+21:04:50.6 demo6 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=12
+21:04:51.7 demo6 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=12
+21:04:52.7 demo7 animal=0 hat=none eat x=512 y=706 air=false windows=1 level=1 food=60
+21:04:53.7 demo7 animal=0 hat=none eat x=512 y=706 air=false windows=1 level=1 food=60
+21:04:54.7 demo7 animal=0 hat=none eat x=512 y=706 air=false windows=1 level=1 food=60
+21:04:55.8 demo7 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=60
+21:04:56.4 landed on ground at y=706
+21:04:56.8 demo8 animal=0 hat=none jump x=512 y=655 air=true windows=1 level=1 food=60
+21:04:57.0 landed on ground at y=706
+21:04:57.6 landed on ground at y=706
+21:04:57.8 demo8 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=60
+21:04:58.8 demo8 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=60
+21:04:59.9 demo8 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=60
+21:05:00.9 demo9 animal=0 hat=phones dance x=512 y=706 air=false windows=1 level=1 food=60
+21:05:01.9 demo9 animal=0 hat=phones dance x=512 y=706 air=false windows=1 level=1 food=60
+21:05:03.0 demo9 animal=0 hat=phones dance x=512 y=706 air=false windows=1 level=1 food=60
+21:05:04.1 demo9 animal=0 hat=phones dance x=512 y=706 air=false windows=1 level=1 food=60
+21:05:05.1 demo9 animal=0 hat=phones dance x=512 y=706 air=false windows=1 level=1 food=60
+21:05:06.1 demo9 animal=0 hat=phones dance x=512 y=706 air=false windows=1 level=1 food=60
+21:05:07.1 demo11 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=60
+21:05:08.2 demo11 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=60
+21:05:09.2 demo11 animal=0 hat=none idle x=512 y=706 air=false windows=1 level=1 food=60
+21:05:10.2 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:11.3 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:12.3 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:13.4 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:14.4 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:15.5 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:16.5 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:17.5 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:18.6 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:19.6 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
+21:05:20.6 animal=0 hat=none sleep x=512 y=706 air=false windows=1 level=1 food=79
