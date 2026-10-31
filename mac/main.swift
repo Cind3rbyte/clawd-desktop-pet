@@ -1404,6 +1404,11 @@ final class Pet: NSView {
 
     override func mouseDown(with e: NSEvent) {
         gotRealMouse = true
+        // Control + click is the right-click of a Mac without a right mouse button
+        if e.modifierFlags.contains(.control) {
+            onMenu?(e)
+            return
+        }
         if e.clickCount == 2 {
             if !air && (y >= ground - 1 || free()) { set(Cfg.level >= Pet.actLevel("flip") || demo ? "flip" : "jump") }
             return
